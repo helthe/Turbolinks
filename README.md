@@ -1,4 +1,4 @@
-# HeltheTurbolinksBundle
+# Helthe Turbolinks
 
 The Helthe Turbolinks is a direct port of the rails [turbolinks](https://github.com/rails/turbolinks) gem
 and the [jquery.turbolinks](https://github.com/kossnocorp/jquery.turbolinks) gem for
