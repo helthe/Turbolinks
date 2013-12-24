@@ -1,0 +1,27 @@
+{
+    "name":        "helthe/turbolinks",
+    "type":        "library",
+    "description": "Helthe Turbolinks Component",
+    "keywords":    ["turbolinks", "jquery.turbolinks"],
+    "homepage":    "https://helthe.co",
+    "license":     "MIT",
+    "authors": [
+        {
+            "name": "Carl Alexander",
+            "email": "carlalexander@helthe.co"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.3",
+        "symfony/http-kernel": "~2.3"
+    },
+    "autoload": {
+        "psr-0": { "Helthe\\Component\\Turbolinks\\": "" }
+    },
+    "target-dir": "Helthe/Component/Turbolinks",
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0.x-dev"
+        }
+    }
+}
