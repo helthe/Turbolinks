@@ -2,7 +2,7 @@
 
 The Helthe Turbolinks is a direct port of the rails [turbolinks](https://github.com/rails/turbolinks) gem
 and the [jquery.turbolinks](https://github.com/kossnocorp/jquery.turbolinks) gem for
-projects using the Symfony [HttpKernel Component](http://symfony.com/doc/current/components/http_kernel/introduction.html).
+projects using the Symfony [HttpFoundation Component](http://symfony.com/doc/current/components/http_foundation/introduction.html).
 
 [![Build Status](https://secure.travis-ci.org/helthe/Turbolinks.png?branch=master)](http://travis-ci.org/helthe/Turbolinks)
 
