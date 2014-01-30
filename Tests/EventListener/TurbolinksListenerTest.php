@@ -11,7 +11,8 @@
 
 namespace Helthe\Component\Turbolinks\Tests\EventListener;
 
-use Helthe\Component\Turbolinks\EventListener\RequestMethodListener;
+use Helthe\Component\Turbolinks\EventListener\TurbolinksListener;
+use Helthe\Component\Turbolinks\Turbolinks;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -19,7 +20,7 @@ use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
-class RequestMethodListenerTest extends \PHPUnit_Framework_TestCase
+class TurbolinksListenerTest extends \PHPUnit_Framework_TestCase
 {
     private $dispatcher;
 
@@ -28,11 +29,7 @@ class RequestMethodListenerTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         $this->dispatcher = new EventDispatcher();
-        $listener = new RequestMethodListener();
-        $this->dispatcher->addListener(KernelEvents::RESPONSE, array($listener, 'onKernelResponse'));
-
         $this->kernel = $this->getMock('Symfony\Component\HttpKernel\HttpKernelInterface');
-
     }
 
     protected function tearDown()
@@ -45,20 +42,47 @@ class RequestMethodListenerTest extends \PHPUnit_Framework_TestCase
     {
         $response = new Response('foo');
 
+        $turbolinks = $this->getTurbolinksMock();
+        $turbolinks->expects($this->never())->method('decorateResponse');
+
+        $this->addTurbolinksListener($turbolinks);
+
         $event = new FilterResponseEvent($this->kernel, new Request(), HttpKernelInterface::SUB_REQUEST, $response);
         $this->dispatcher->dispatch(KernelEvents::RESPONSE, $event);
-
-        $this->assertNotContains("Set-Cookie: request_method=GET; path=/; httponly", explode("\r\n", $event->getResponse()->headers->__toString()));
     }
 
-    public function testFilterSetsCookieForMasterRequests()
+    public function testFilterDoesSomethingForMasterRequests()
     {
-        $method = 'POST';
         $response = new Response('foo');
 
-        $event = new FilterResponseEvent($this->kernel, Request::create('/', $method), HttpKernelInterface::MASTER_REQUEST, $response);
-        $this->dispatcher->dispatch(KernelEvents::RESPONSE, $event);
+        $turbolinks = $this->getTurbolinksMock();
+        $turbolinks->expects($this->once())->method('decorateResponse');
 
-        $this->assertContains("Set-Cookie: request_method=$method; path=/; httponly", explode("\r\n", $event->getResponse()->headers->__toString()));
+        $this->addTurbolinksListener($turbolinks);
+
+        $event = new FilterResponseEvent($this->kernel, new Request(), HttpKernelInterface::MASTER_REQUEST, $response);
+        $this->dispatcher->dispatch(KernelEvents::RESPONSE, $event);
+    }
+
+    /**
+     * Gets a mock of the Turbolinks object.
+     *
+     * @return PHPUnit_Framework_MockObject_MockObject
+     */
+    private function getTurbolinksMock()
+    {
+        return $this->getMock('Helthe\Component\Turbolinks\Turbolinks');
+    }
+
+    /**
+     * Get an instance of TurbolinksListener.
+     *
+     * @param Turbolinks $turbolinks
+     *
+     * @return TurbolinksListener
+     */
+    private function addTurbolinksListener(Turbolinks $turbolinks)
+    {
+        $this->dispatcher->addListener(KernelEvents::RESPONSE, array(new TurbolinksListener($turbolinks), 'onKernelResponse'));
     }
 }

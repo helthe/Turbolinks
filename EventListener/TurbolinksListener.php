@@ -11,24 +11,21 @@
 
 namespace Helthe\Component\Turbolinks\EventListener;
 
+use Helthe\Component\Turbolinks\Turbolinks;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
-use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Event listener that adds the necessary request method cookie to the response.
+ * Event listener that modifies the kernel response for the turbolinks javascript.
  *
  * @author Carl Alexander <carlalexander@helthe.co>
  */
-class RequestMethodListener implements EventSubscriberInterface
+class TurbolinksListener implements EventSubscriberInterface
 {
     /**
-     * Cookie attribute name for the request method.
-     *
-     * @var string
+     * @var Turbolinks
      */
-    const COOKIE_ATTR_NAME = 'request_method';
+    private $turbolinks;
 
     /**
      * {@inheritdoc}
@@ -36,8 +33,18 @@ class RequestMethodListener implements EventSubscriberInterface
     public static function getSubscribedEvents()
     {
         return array(
-            KernelEvents::RESPONSE => 'onKernelResponse',
+            KernelEvents::RESPONSE => array('onKernelResponse', -128),
         );
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param Turbolinks $turbolinks
+     */
+    public function __construct(Turbolinks $turbolinks)
+    {
+        $this->turbolinks = $turbolinks;
     }
 
     /**
@@ -51,11 +58,6 @@ class RequestMethodListener implements EventSubscriberInterface
             return;
         }
 
-        $event->getResponse()->headers->setCookie(
-            new Cookie(
-                self::COOKIE_ATTR_NAME,
-                $event->getRequest()->getMethod()
-            )
-        );
+        $this->turbolinks->decorateResponse($event->getRequest(), $event->getResponse());
     }
 }

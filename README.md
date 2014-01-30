@@ -60,16 +60,13 @@ All event listeners need to be added to the event dispatcher for turbolinks to w
 
 ```php
 <?php
-use Helthe\Component\Turbolinks\EventListener\CrossDomainListener;
-use Helthe\Component\Turbolinks\EventListener\RedirectListener;
-use Helthe\Component\Turbolinks\EventListener\RequestMethodListener;
+use Helthe\Component\Turbolinks\EventListener\TurbolinksListener;
+use Helthe\Component\Turbolinks\Turbolinks;
 
 // ...
 
 // Symfony\Component\EventDispatcher\EventDispatcherInterface
-$dispatcher->addSubscriber(new CrossDomainListener());
-$dispatcher->addSubscriber(new RedirectListener());
-$dispatcher->addSubscriber(new RequestMethodListener());
+$dispatcher->addSubscriber(new TurbolinksListener(new Turbolinks()));
 ```
 
 ## Compatibility
