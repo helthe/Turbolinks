@@ -14,6 +14,7 @@ namespace Helthe\Component\Turbolinks\EventListener;
 use Helthe\Component\Turbolinks\Turbolinks;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Event listener that modifies the kernel response for the turbolinks javascript.
