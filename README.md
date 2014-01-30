@@ -62,13 +62,10 @@ You can manually decorate the response with the `Turbolinks`object.
 ```php
 <?php
 use Helthe\Component\Turbolinks\Turbolinks;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 // ...
-
-// Symfony\Component\HttpFoundation\Request
-$request = new Request();
-// Symfony\Component\HttpFoundation\Response
-$request = new Response();
 
 $turbolinks = new Turbolinks();
 $turbolinks->decorateResponse($request, $response);
