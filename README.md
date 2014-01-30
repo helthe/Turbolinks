@@ -27,20 +27,81 @@ CSS. You can find the rails benchmarks [here](https://stevelabnik/turbolinks_tes
 
 ### Using Composer
 
+#### Manually
+
 Add the following in your `componser.json`:
 
 ```json
 {
     "require": {
         // ...
-        "helthe/turbolinks": "~1.0"
+        "helthe/turbolinks": "~1.2"
     }
 }
 ```
 
+#### Using the command line
+
+```bash
+$ composer require 'helthe/turbolinks=~1.2'
+```
+
 ## Usage
 
-Using turbolinks requires both the usage of the javascript library and the event listeners included with the component.
+Using turbolinks requires both the usage of the javascript library and modifying
+the PHP response so that it can be properly processed by turbolinks.
+
+### PHP
+
+There are multiple ways to decorate the PHP response for turbolinks.
+
+#### Manually
+
+You can manually decorate the response with the `Turbolinks`object.
+
+```php
+<?php
+use Helthe\Component\Turbolinks\Turbolinks;
+
+// ...
+
+// Symfony\Component\HttpFoundation\Request
+$request = new Request();
+// Symfony\Component\HttpFoundation\Response
+$request = new Response();
+
+$turbolinks = new Turbolinks();
+$turbolinks->decorateResponse($request, $response);
+```
+
+#### Event Listeners
+
+You can add an event listener to the dispatcher that is passed to the HttpKernel.
+
+```php
+<?php
+use Helthe\Component\Turbolinks\EventListener\TurbolinksListener;
+use Helthe\Component\Turbolinks\Turbolinks;
+
+// ...
+
+// Symfony\Component\EventDispatcher\EventDispatcherInterface
+$dispatcher->addSubscriber(new TurbolinksListener(new Turbolinks()));
+```
+
+#### Stack Middleware
+
+You can decorate the response using the supplied [Stack](http://stackphp.com/) middleware.
+
+```php
+<?php
+use Helthe\Component\Turbolinks\StackTurbolinks;
+use Helthe\Component\Turbolinks\Turbolinks;
+
+// ...
+
+$app = new StackTurbolinks($app, new Turbolinks());
+```
 
 ### Javascripts
 
@@ -53,21 +114,6 @@ To enable turbolinks, all you need to do is add the compiled turbolinks javascri
 #### Using jquery.turbolinks
 
 If you need to use jquery.turbolinks, you need to add it before `turbolinks.js`.
-
-### Event Listeners
-
-All event listeners need to be added to the event dispatcher for turbolinks to work properly.
-
-```php
-<?php
-use Helthe\Component\Turbolinks\EventListener\TurbolinksListener;
-use Helthe\Component\Turbolinks\Turbolinks;
-
-// ...
-
-// Symfony\Component\EventDispatcher\EventDispatcherInterface
-$dispatcher->addSubscriber(new TurbolinksListener(new Turbolinks()));
-```
 
 ## Compatibility
 
