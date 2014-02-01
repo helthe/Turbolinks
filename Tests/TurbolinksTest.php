@@ -49,7 +49,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertConstainsRequestMethodCookie($response);
+        $this->assertContainsRequestMethodCookie($response);
     }
 
     public function testDoesNothingWhenNoOriginResponseHeader()
@@ -60,7 +60,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertConstainsRequestMethodCookie($response);
+        $this->assertContainsRequestMethodCookie($response);
     }
 
     public function testDoesNothingWhenNormalResponse()
@@ -71,7 +71,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertFalse($response->headers->has(Turbolinks::REDIRECT_RESPONSE_HEADER));
-        $this->assertConstainsRequestMethodCookie($response);
+        $this->assertContainsRequestMethodCookie($response);
     }
 
     public function testSetsForbiddenForDifferentHost()
@@ -82,7 +82,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
-        $this->assertConstainsRequestMethodCookie($response);
+        $this->assertContainsRequestMethodCookie($response);
     }
 
     public function testSetsForbiddenForDifferentPort()
@@ -93,7 +93,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
-        $this->assertConstainsRequestMethodCookie($response);
+        $this->assertContainsRequestMethodCookie($response);
     }
 
     public function testSetsHeaderWhenNormalResponse()
@@ -106,7 +106,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->assertTrue($response->headers->has(Turbolinks::REDIRECT_RESPONSE_HEADER));
         $this->assertEquals($url, $response->headers->get(Turbolinks::REDIRECT_RESPONSE_HEADER));
-        $this->assertConstainsRequestMethodCookie($response);
+        $this->assertContainsRequestMethodCookie($response);
     }
 
     public function testSetsHeaderWhenRedirectResponse()
@@ -119,7 +119,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->assertTrue($response->headers->has(Turbolinks::REDIRECT_RESPONSE_HEADER));
         $this->assertEquals($url, $response->headers->get(Turbolinks::REDIRECT_RESPONSE_HEADER));
-        $this->assertConstainsRequestMethodCookie($response);
+        $this->assertContainsRequestMethodCookie($response);
     }
 
     public function testSetsForbiddenForDifferentScheme()
@@ -130,7 +130,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
-        $this->assertConstainsRequestMethodCookie($response);
+        $this->assertContainsRequestMethodCookie($response);
     }
 
     public function testSetsRequestMethodCookie()
@@ -140,7 +140,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->turbolinks->decorateResponse(Request::create('/', $method), $response);
 
-        $this->assertConstainsRequestMethodCookie($response, $method);
+        $this->assertContainsRequestMethodCookie($response, $method);
     }
 
     /**
@@ -149,7 +149,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
      * @param Response $response
      * @param string   $method
      */
-    private function assertConstainsRequestMethodCookie(Response $response, $method = 'GET')
+    private function assertContainsRequestMethodCookie(Response $response, $method = 'GET')
     {
         $this->assertContains(sprintf('Set-Cookie: %s=%s; path=/; httponly', Turbolinks::REQUEST_METHOD_COOKIE_ATTR_NAME, $method), explode("\r\n", $response->headers->__toString()));
     }
