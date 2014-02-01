@@ -29,7 +29,7 @@ CSS. You can find the rails benchmarks [here](https://stevelabnik/turbolinks_tes
 
 #### Manually
 
-Add the following in your `componser.json`:
+Add the following in your `composer.json`:
 
 ```json
 {
