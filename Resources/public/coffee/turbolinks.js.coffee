@@ -290,6 +290,12 @@ allowLinkExtensions = (extensions...) ->
   htmlExtensions.push extension for extension in extensions
   htmlExtensions
 
+
+# Delay execution of function long enough to miss the popstate event
+# some browsers fire on the initial page load.
+bypassOnLoadPopstate = (fn) ->
+  setTimeout fn, 500
+
 installDocumentReadyPageEventTriggers = ->
   document.addEventListener 'DOMContentLoaded', ( ->
     triggerEvent 'page:change'
@@ -316,11 +322,13 @@ initializeTurbolinks = ->
   createDocument = browserCompatibleDocumentParser()
 
   document.addEventListener 'click', installClickHandlerLast, true
-  window.addEventListener 'popstate', installHistoryChangeHandler, false
 
-# Handle bug in Firefox 26 where history.state is initially undefined
+  bypassOnLoadPopstate ->
+    window.addEventListener 'popstate', installHistoryChangeHandler, false
+
+# Handle bug in Firefox 26/27 where history.state is initially undefined
 historyStateIsDefined =
-  window.history.state != undefined or navigator.userAgent.match /Firefox\/26/
+  window.history.state != undefined or navigator.userAgent.match /Firefox\/2[6|7]/
 
 browserSupportsPushState =
   window.history and window.history.pushState and window.history.replaceState and historyStateIsDefined
