@@ -22,12 +22,11 @@
         "symfony/http-kernel": "Required for usage with the Symfony HttpKernel Component"
     },
     "autoload": {
-        "psr-0": { "Helthe\\Component\\Turbolinks\\": "" }
+        "psr-4": { "Helthe\\Component\\Turbolinks\\": "" }
     },
-    "target-dir": "Helthe/Component/Turbolinks",
     "extra": {
         "branch-alias": {
-            "dev-master": "1.0.x-dev"
+            "dev-master": "1.2.x-dev"
         }
     }
 }
