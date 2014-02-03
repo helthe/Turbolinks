@@ -37,14 +37,14 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->turbolinks->decorateResponse($request, $response);
 
-        $this->assertFalse($response->headers->has(Turbolinks::REDIRECT_RESPONSE_HEADER));
+        $this->assertFalse($response->headers->has('X-XHR-Redirected-To'));
 
     }
 
     public function testDoesNothingWhenNoOriginRequestHeader()
     {
         $request = $this->createRequest('/');
-        $response = new Response('foo', Response::HTTP_OK, array(Turbolinks::ORIGIN_RESPONSE_HEADER => 'http://bar.foo'));
+        $response = new Response('foo', Response::HTTP_OK, array('Location' => 'http://bar.foo'));
 
         $this->turbolinks->decorateResponse($request, $response);
 
@@ -70,14 +70,14 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->turbolinks->decorateResponse($request, $response);
 
-        $this->assertFalse($response->headers->has(Turbolinks::REDIRECT_RESPONSE_HEADER));
+        $this->assertFalse($response->headers->has('X-XHR-Redirected-To'));
         $this->assertContainsRequestMethodCookie($response);
     }
 
     public function testSetsForbiddenForDifferentHost()
     {
         $request = $this->createRequest('/', array('HTTP_X_XHR_REFERER' => 'http://bar.foo'));
-        $response = new Response('foo', Response::HTTP_OK, array(Turbolinks::ORIGIN_RESPONSE_HEADER => 'http://foo.bar'));
+        $response = new Response('foo', Response::HTTP_OK, array('Location' => 'http://foo.bar'));
 
         $this->turbolinks->decorateResponse($request, $response);
 
@@ -88,7 +88,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
     public function testSetsForbiddenForDifferentPort()
     {
         $request = $this->createRequest('/', array('HTTP_X_XHR_REFERER' => 'http://foo.bar:8080'));
-        $response = new Response('foo', Response::HTTP_OK, array(Turbolinks::ORIGIN_RESPONSE_HEADER => 'http://foo.bar'));
+        $response = new Response('foo', Response::HTTP_OK, array('Location' => 'http://foo.bar'));
 
         $this->turbolinks->decorateResponse($request, $response);
 
@@ -104,8 +104,8 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->turbolinks->decorateResponse($request, $response);
 
-        $this->assertTrue($response->headers->has(Turbolinks::REDIRECT_RESPONSE_HEADER));
-        $this->assertEquals($url, $response->headers->get(Turbolinks::REDIRECT_RESPONSE_HEADER));
+        $this->assertTrue($response->headers->has('X-XHR-Redirected-To'));
+        $this->assertEquals($url, $response->headers->get('X-XHR-Redirected-To'));
         $this->assertContainsRequestMethodCookie($response);
     }
 
@@ -117,15 +117,15 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->turbolinks->decorateResponse($request, $response);
 
-        $this->assertTrue($response->headers->has(Turbolinks::REDIRECT_RESPONSE_HEADER));
-        $this->assertEquals($url, $response->headers->get(Turbolinks::REDIRECT_RESPONSE_HEADER));
+        $this->assertTrue($response->headers->has('X-XHR-Redirected-To'));
+        $this->assertEquals($url, $response->headers->get('X-XHR-Redirected-To'));
         $this->assertContainsRequestMethodCookie($response);
     }
 
     public function testSetsForbiddenForDifferentScheme()
     {
         $request = $this->createRequest('/', array('HTTP_X_XHR_REFERER' => 'https://foo.bar'));
-        $response = new Response('foo', Response::HTTP_OK, array(Turbolinks::ORIGIN_RESPONSE_HEADER => 'http://foo.bar'));
+        $response = new Response('foo', Response::HTTP_OK, array('Location' => 'http://foo.bar'));
 
         $this->turbolinks->decorateResponse($request, $response);
 
@@ -151,7 +151,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
      */
     private function assertContainsRequestMethodCookie(Response $response, $method = 'GET')
     {
-        $this->assertContains(sprintf('Set-Cookie: %s=%s; path=/; httponly', Turbolinks::REQUEST_METHOD_COOKIE_ATTR_NAME, $method), explode("\r\n", $response->headers->__toString()));
+        $this->assertContains(sprintf('Set-Cookie: %s=%s; path=/; httponly', 'request_method', $method), explode("\r\n", $response->headers->__toString()));
     }
 
     /**
