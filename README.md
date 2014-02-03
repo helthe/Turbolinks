@@ -122,7 +122,7 @@ Instead of copying over the compiled javascripts to your projects, try to use yo
 
 ### List of integrations
 
- * [HeltheTurboLinksBundle](https://github.com/helthe/TurbolinksBundle) (Symfony 2)
+ * [HeltheTurbolinksBundle](https://github.com/helthe/TurbolinksBundle) (Symfony 2)
 
 ## Compatibility
 
