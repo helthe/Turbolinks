@@ -112,6 +112,14 @@ To enable turbolinks, all you need to do is add the compiled turbolinks javascri
 
 If you need to use jquery.turbolinks, you need to add it before `turbolinks.js`.
 
+## Integrating turbolinks with another PHP project
+
+The goal of the component is to offer a base package for integration with other PHP projects using the Symfony [HttpFoundation](https://github.com/symfony/HttpFoundation) or [HttpKernel](https://github.com/symfony/HttpKernel) components.
+
+You can do so by either using the supplied [middleware](https://github.com/helthe/Turbolinks/blob/master/StackTurbolinks.php) that follows the [Stack](http://stackphp.com) convention or by adding the supplied [event listenter](https://github.com/helthe/Turbolinks/blob/master/EventListener/TurbolinksListener.php) to the HttpKernel event dispatcher.
+
+Instead of copying over the compiled javascripts to your projects, try to use your project tools to copy them over. You should always be able to fallback on the composer script hooks like `post-install-cmd` and `post-update-cmd`.
+
 ## Compatibility
 
 The turbolinks javascript is designed to work with any browser that fully supports
