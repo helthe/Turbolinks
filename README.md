@@ -120,6 +120,10 @@ You can do so by either using the supplied [middleware](https://github.com/helth
 
 Instead of copying over the compiled javascripts to your projects, try to use your project tools to copy them over. You should always be able to fallback on the composer script hooks like `post-install-cmd` and `post-update-cmd`.
 
+### List of integrations
+
+ * [HeltheTurboLinksBundle](https://github.com/helthe/TurbolinksBundle) (Symfony 2)
+
 ## Compatibility
 
 The turbolinks javascript is designed to work with any browser that fully supports
