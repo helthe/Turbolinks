@@ -67,7 +67,7 @@ class TurbolinksListenerTest extends \PHPUnit_Framework_TestCase
     /**
      * Gets a mock of the Turbolinks object.
      *
-     * @return Turbolinks
+     * @return PHPUnit_Framework_MockObject_MockObject
      */
     private function getTurbolinksMock()
     {
