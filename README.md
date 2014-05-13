@@ -19,7 +19,7 @@ the current page instance alive and replaces only the body and the title in the 
 
 Performance improvements will vary depending on the amount of CSS and Javascript
 you are using. You can get up to a 2X increase when using a lot of Javascript and
-CSS. You can find the rails benchmarks [here](https://stevelabnik/turbolinks_test).
+CSS. You can find the rails benchmarks [here](https://github.com/steveklabnik/turbolinks_test).
 
 ## Installation
 
