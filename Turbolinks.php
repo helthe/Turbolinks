@@ -14,6 +14,7 @@ namespace Helthe\Component\Turbolinks;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 /**
  * Turbolinks implements the server-side logic expected by Turbolinks javascript.
@@ -46,6 +47,13 @@ class Turbolinks
     const REDIRECT_RESPONSE_HEADER = 'X-XHR-Redirected-To';
 
     /**
+     * Session attribute name for the redirect location.
+     *
+     * @var string
+     */
+    const REDIRECT_SESSION_ATTR_NAME = 'helthe_turbolinks_redirect_to';
+
+    /**
      * Cookie attribute name for the request method.
      *
      * @var string
@@ -69,11 +77,6 @@ class Turbolinks
             $response->setStatusCode(Response::HTTP_FORBIDDEN);
         }
 
-        // Add redirect response headers to redirects
-        if ($response->isRedirect() && $response->headers->has('Location')) {
-            $response->headers->add(array(self::REDIRECT_RESPONSE_HEADER => $response->headers->get('Location')));
-        }
-
         // Mandatory request method cookie
         $response->headers->setCookie(
             new Cookie(
@@ -81,6 +84,21 @@ class Turbolinks
                 $request->getMethod()
             )
         );
+
+        $session = $request->getSession();
+
+        // We want a session and a XHR request to handle a redirect.
+        if (!$session instanceof SessionInterface || !$request->headers->has(self::ORIGIN_REQUEST_HEADER)) {
+            return;
+        }
+
+        if ($session->has(self::REDIRECT_SESSION_ATTR_NAME)) {
+            $response->headers->add(array(self::REDIRECT_RESPONSE_HEADER => $session->remove(self::REDIRECT_SESSION_ATTR_NAME)));
+        }
+
+        if ($response->isRedirect() && $response->headers->has('Location')) {
+            $session->set(self::REDIRECT_SESSION_ATTR_NAME, $response->headers->get('Location'));
+        }
     }
 
     /**
@@ -105,7 +123,7 @@ class Turbolinks
      * @param Request  $request
      * @param Response $response
      *
-     * @return Boolean
+     * @return bool
      */
     private function haveSameOrigin(Request $request, Response $response)
     {

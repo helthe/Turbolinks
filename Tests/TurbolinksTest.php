@@ -75,6 +75,17 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->assertContainsRequestMethodCookie($response);
     }
 
+    public function testDoesNothingWhenNoSession()
+    {
+        $request = new Request();
+        $response = new RedirectResponse('http://foo.bar/redirect');
+
+        $this->turbolinks->decorateResponse($request, $response);
+
+        $this->assertFalse($response->headers->has('X-XHR-Redirected-To'));
+        $this->assertContainsRequestMethodCookie($response);
+    }
+
     public function testSetsForbiddenForDifferentHost()
     {
         $request = $this->createRequest('/', array('HTTP_X_XHR_REFERER' => 'http://bar.foo'));
@@ -97,24 +108,60 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->assertContainsRequestMethodCookie($response);
     }
 
-    public function testSetsHeaderWhenNormalResponse()
+    public function testDoesntSetSessionRedirectWhenNoHeader()
     {
-        $url = 'http://foo.bar';
+        $url = 'http://foo.bar/redirect';
         $request = new Request();
-        $response = new Response('foo', Response::HTTP_MOVED_PERMANENTLY, array('Location' => $url));
+        $response = new RedirectResponse($url);
+        $session = $this->getSessionMock();
+
+        $session->expects($this->never())
+                ->method('set');
+
+        $request->setSession($session);
 
         $this->turbolinks->decorateResponse($request, $response);
 
-        $this->assertTrue($response->headers->has('X-XHR-Redirected-To'));
-        $this->assertEquals($url, $response->headers->get('X-XHR-Redirected-To'));
+        $this->assertFalse($response->headers->has('X-XHR-Redirected-To'));
         $this->assertContainsRequestMethodCookie($response);
     }
 
-    public function testSetsHeaderWhenRedirectResponse()
+    public function testSetsSessionRedirectWhenRedirect()
     {
-        $url = 'http://foo.bar';
-        $request = new Request();
+        $url = 'http://foo.bar/redirect';
+        $request = $this->createRequest('/', array('HTTP_X_XHR_REFERER' => 'http://foo.bar'));
         $response = new RedirectResponse($url);
+        $session = $this->getSessionMock();
+
+        $session->expects($this->once())
+                ->method('set')
+                ->with($this->equalTo('helthe_turbolinks_redirect_to'), $this->equalTo($url));
+
+        $request->setSession($session);
+
+        $this->turbolinks->decorateResponse($request, $response);
+
+        $this->assertContainsRequestMethodCookie($response);
+    }
+
+    public function testSetsHeaderWhenSessionHasRedirect()
+    {
+        $url = 'http://foo.bar/redirect';
+        $request = $this->createRequest('/', array('HTTP_X_XHR_REFERER' => 'http://foo.bar'));
+        $response = new Response();
+        $session = $this->getSessionMock();
+
+        $session->expects($this->once())
+                ->method('has')
+                ->with($this->equalTo('helthe_turbolinks_redirect_to'))
+                ->will($this->returnValue(true));
+
+        $session->expects($this->once())
+                ->method('remove')
+                ->with($this->equalTo('helthe_turbolinks_redirect_to'))
+                ->will($this->returnValue($url));
+
+        $request->setSession($session);
 
         $this->turbolinks->decorateResponse($request, $response);
 
@@ -166,5 +213,15 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
     private function createRequest($uri, array $server = array())
     {
         return Request::create($uri, 'GET', array(), array(), array(), $server);
+    }
+
+    /**
+     * Get a mock of a Symfony Session.
+     *
+     * @return PHPUnit_Framework_MockObject_MockObject
+     */
+    private function getSessionMock()
+    {
+        return $this->getMock('Symfony\Component\HttpFoundation\Session\SessionInterface');
     }
 }
