@@ -38,6 +38,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertFalse($response->headers->has('X-XHR-Redirected-To'));
+        $this->assertContainsRequestMethodCookie($response);
 
     }
 
