@@ -69,28 +69,14 @@ class Turbolinks
      */
     public function decorateResponse(Request $request, Response $response)
     {
-        // Block cross domain redirects
-        if ($request->headers->has(self::ORIGIN_REQUEST_HEADER)
-            && $response->headers->has(self::ORIGIN_RESPONSE_HEADER)
-            && !$this->haveSameOrigin($request, $response)
-        ) {
-            $response->setStatusCode(Response::HTTP_FORBIDDEN);
-        }
+        $this->addRequestMethodCookie($request, $response);
+        $this->modifyStatusCode($request, $response);
 
-        // Mandatory request method cookie
-        $response->headers->setCookie(
-            new Cookie(
-                self::REQUEST_METHOD_COOKIE_ATTR_NAME,
-                $request->getMethod()
-            )
-        );
-
-        $session = $request->getSession();
-
-        // We want a session and a XHR request to handle a redirect.
-        if (!$session instanceof SessionInterface || !$request->headers->has(self::ORIGIN_REQUEST_HEADER)) {
+        if (!$this->canHandleRedirect($request)) {
             return;
         }
+
+        $session = $request->getSession();
 
         if ($session->has(self::REDIRECT_SESSION_ATTR_NAME)) {
             $response->headers->add(array(self::REDIRECT_RESPONSE_HEADER => $session->remove(self::REDIRECT_SESSION_ATTR_NAME)));
@@ -99,6 +85,38 @@ class Turbolinks
         if ($response->isRedirect() && $response->headers->has('Location')) {
             $session->set(self::REDIRECT_SESSION_ATTR_NAME, $response->headers->get('Location'));
         }
+    }
+
+    /**
+     * Adds a cookie with the request method for the given request. Turbolinks will
+     * not intialize if the cookie isn't set to GET.
+     *
+     * @param Request  $request
+     * @param Response $response
+     */
+    private function addRequestMethodCookie(Request $request, Response $response)
+    {
+        $response->headers->setCookie(
+            new Cookie(
+                self::REQUEST_METHOD_COOKIE_ATTR_NAME,
+                $request->getMethod()
+            )
+        );
+    }
+
+    /**
+     * Checks if the request can handle a Turbolink redirect. You need to have a
+     * session and a XHR request to handle a redirect.
+     *
+     * @param Request $request
+     *
+     * @return bool
+     */
+    private function canHandleRedirect(Request $request)
+    {
+        $session = $request->getSession();
+
+        return $session instanceof SessionInterface && $request->headers->has(self::ORIGIN_REQUEST_HEADER);
     }
 
     /**
@@ -131,5 +149,22 @@ class Turbolinks
         $responseOrigin = $this->getUrlOrigin($response->headers->get(self::ORIGIN_RESPONSE_HEADER));
 
         return $requestOrigin == $responseOrigin;
+    }
+
+    /**
+     * Modifies the response status code. Checks for cross domain redirects and
+     * blocks them.
+     *
+     * @param Request  $request
+     * @param Response $response
+     */
+    private function modifyStatusCode(Request $request, Response $response)
+    {
+        if ($request->headers->has(self::ORIGIN_REQUEST_HEADER)
+            && $response->headers->has(self::ORIGIN_RESPONSE_HEADER)
+            && !$this->haveSameOrigin($request, $response)
+        ) {
+            $response->setStatusCode(Response::HTTP_FORBIDDEN);
+        }
     }
 }
