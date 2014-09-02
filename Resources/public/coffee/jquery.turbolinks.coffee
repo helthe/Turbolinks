@@ -10,7 +10,7 @@ $ = window.jQuery or require?('jquery')
 $document = $(document)
 
 $.turbo =
-  version: '2.0.2'
+  version: '2.1.0'
 
   isReady: false
 
@@ -24,8 +24,7 @@ $.turbo =
   addCallback: (callback) ->
     if $.turbo.isReady
       callback($)
-    else
-      $document.on 'turbo:ready', -> callback($)
+    $document.on 'turbo:ready', -> callback($)
 
   onLoad: ->
     $.turbo.isReady = true
