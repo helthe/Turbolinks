@@ -88,20 +88,21 @@ class Turbolinks
     }
 
     /**
-     * Adds a cookie with the request method for the given request. Turbolinks will
-     * not initialize if the cookie isn't set to GET.
+     * Adds a cookie with the request method for non-GET requests. If a cookie is present and the request is GET, the
+     * cookie is removed to work better with caching solutions. The turbolinks will not initialize if the cookie is set.
      *
      * @param Request  $request
      * @param Response $response
      */
     private function addRequestMethodCookie(Request $request, Response $response)
     {
-        $response->headers->setCookie(
-            new Cookie(
-                self::REQUEST_METHOD_COOKIE_ATTR_NAME,
-                $request->getMethod()
-            )
-        );
+        if ($request->isMethod('GET') && $request->cookies->has(self::REQUEST_METHOD_COOKIE_ATTR_NAME)) {
+            $response->headers->clearCookie(self::REQUEST_METHOD_COOKIE_ATTR_NAME);
+        }
+
+        if (!$request->isMethod('GET')) {
+            $response->headers->setCookie(new Cookie(self::REQUEST_METHOD_COOKIE_ATTR_NAME, $request->getMethod()));
+        }
     }
 
     /**

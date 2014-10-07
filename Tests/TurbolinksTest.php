@@ -18,6 +18,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class TurbolinksTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * @var Turbolinks
+     */
     private $turbolinks;
 
     protected function setUp()
@@ -38,7 +41,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertFalse($response->headers->has('X-XHR-Redirected-To'));
-        $this->assertContainsRequestMethodCookie($response);
+        $this->assertResponseHasNoCookies($response);
 
     }
 
@@ -50,7 +53,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertContainsRequestMethodCookie($response);
+        $this->assertResponseHasNoCookies($response);
     }
 
     public function testDoesNothingWhenNoOriginResponseHeader()
@@ -61,7 +64,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertContainsRequestMethodCookie($response);
+        $this->assertResponseHasNoCookies($response);
     }
 
     public function testDoesNothingWhenNormalResponse()
@@ -72,7 +75,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertFalse($response->headers->has('X-XHR-Redirected-To'));
-        $this->assertContainsRequestMethodCookie($response);
+        $this->assertResponseHasNoCookies($response);
     }
 
     public function testDoesNothingWhenNoSession()
@@ -83,7 +86,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertFalse($response->headers->has('X-XHR-Redirected-To'));
-        $this->assertContainsRequestMethodCookie($response);
+        $this->assertResponseHasNoCookies($response);
     }
 
     public function testSetsForbiddenForDifferentHost()
@@ -94,7 +97,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
-        $this->assertContainsRequestMethodCookie($response);
+        $this->assertResponseHasNoCookies($response);
     }
 
     public function testSetsForbiddenForDifferentPort()
@@ -105,7 +108,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
-        $this->assertContainsRequestMethodCookie($response);
+        $this->assertResponseHasNoCookies($response);
     }
 
     public function testDoesntSetSessionRedirectWhenNoHeader()
@@ -123,7 +126,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertFalse($response->headers->has('X-XHR-Redirected-To'));
-        $this->assertContainsRequestMethodCookie($response);
+        $this->assertResponseHasNoCookies($response);
     }
 
     public function testSetsSessionRedirectWhenRedirect()
@@ -141,7 +144,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->turbolinks->decorateResponse($request, $response);
 
-        $this->assertContainsRequestMethodCookie($response);
+        $this->assertResponseHasNoCookies($response);
     }
 
     public function testSetsHeaderWhenSessionHasRedirect()
@@ -167,7 +170,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->assertTrue($response->headers->has('X-XHR-Redirected-To'));
         $this->assertEquals($url, $response->headers->get('X-XHR-Redirected-To'));
-        $this->assertContainsRequestMethodCookie($response);
+        $this->assertResponseHasNoCookies($response);
     }
 
     public function testSetsForbiddenForDifferentScheme()
@@ -178,7 +181,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
-        $this->assertContainsRequestMethodCookie($response);
+        $this->assertResponseHasNoCookies($response);
     }
 
     public function testSetsRequestMethodCookie()
@@ -191,15 +194,35 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
         $this->assertContainsRequestMethodCookie($response, $method);
     }
 
+    public function testDeletesRequestMethodCookie()
+    {
+        $request = Request::create('/', 'GET', array(), array('request_method' => 'POST'));
+        $response = new Response('foo');
+
+        $this->turbolinks->decorateResponse($request, $response);
+
+        $this->assertRegExp('/Set-Cookie: request_method=deleted;/m', $response->headers->__toString());
+    }
+
     /**
      * Asserts that a response contains the request method cookie.
      *
      * @param Response $response
      * @param string   $method
      */
-    private function assertContainsRequestMethodCookie(Response $response, $method = 'GET')
+    private function assertContainsRequestMethodCookie(Response $response, $method)
     {
         $this->assertContains(sprintf('Set-Cookie: %s=%s; path=/; httponly', 'request_method', $method), explode("\r\n", $response->headers->__toString()));
+    }
+
+    /**
+     * Asserts that a response has no cookies.
+     *
+     * @param Response $response
+     */
+    private function assertResponseHasNoCookies(Response $response)
+    {
+        $this->assertEmpty($response->headers->getCookies());
     }
 
     /**
