@@ -89,7 +89,7 @@ class Turbolinks
 
     /**
      * Adds a cookie with the request method for the given request. Turbolinks will
-     * not intialize if the cookie isn't set to GET.
+     * not initialize if the cookie isn't set to GET.
      *
      * @param Request  $request
      * @param Response $response
@@ -106,7 +106,7 @@ class Turbolinks
 
     /**
      * Checks if the request can handle a Turbolink redirect. You need to have a
-     * session and a XHR request to handle a redirect.
+     * session and a XHR request header to handle a redirect.
      *
      * @param Request $request
      *
