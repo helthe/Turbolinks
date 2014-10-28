@@ -8,7 +8,7 @@ projects using the Symfony [HttpFoundation Component](http://symfony.com/doc/cur
 
 Current versions of the following gems are used:
 
- * turbolinks: v2.4.0
+ * turbolinks: v2.5.1
  * jquery.turbolinks: v2.1.0
 
 ## Performance
