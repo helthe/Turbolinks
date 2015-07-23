@@ -65,7 +65,7 @@ class Turbolinks
 
     /**
      * Map between Turbolinks options names and Turbolinks HTTP header names
-     * See: https://github.com/rails/turbolinks/blob/master/README.md#partial-replacements-with-turbolinks-30
+     * See: https://github.com/rails/turbolinks/blob/master/README.md#partial-replacement-30
      *
      * @var array
      */
@@ -262,10 +262,6 @@ class Turbolinks
     private function extractTurbolinksOptions($headers)
     {
         $optionsFromHeaders = $this->extractTurbolinksHeaders($headers);
-        // $headers->add($optionsFromHeaders);
-
-        // $turbolinks = $headers->get('turbolinks');
-        // $headers->remove('turbolinks');
 
         // Equivalent of the `array_pull()` Laravel helper:
         //   $turbolinks = array_pull($optionsFromHeaders, 'turbolinks');
@@ -277,13 +273,6 @@ class Turbolinks
         }
 
         $optionsKeys = array('keep', 'change', 'flush');
-        // $turbolinksOptions = array();
-        // foreach ($optionsKeys as $key) {
-        //     if ($headers->has($key)) {
-        //         $turbolinksOptions[$key] = $headers->get($key);
-        //         $headers->remove($key);
-        //     }
-        // }
 
         // Complex code, equivalent of the `array_only()` Laravel helper:
         //   $turbolinksOptions = array_only($optionsFromHeaders, $optionsKeys);
@@ -334,7 +323,7 @@ class Turbolinks
     /**
      * @param  ResponseHeaderBag $headers
      *
-     * @return array Turbolinks Options
+     * @return array Turbolinks options
      */
     public function extractTurbolinksHeaders($headers)
     {
@@ -358,6 +347,7 @@ class Turbolinks
     /**
      * Return HTTP headers equivalent of the given Turbolinks options.
      * E.G. `['change'  => 'comments']` becomes `['X-Turbolinks-Change' => 'comments']`
+     * 
      * @param  array $options
      *
      * @return array
