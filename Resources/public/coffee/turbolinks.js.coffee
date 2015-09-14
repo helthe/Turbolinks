@@ -3,6 +3,7 @@ cacheSize               = 10
 transitionCacheEnabled  = false
 requestCachingEnabled   = true
 progressBar             = null
+progressBarDelay        = 400
 
 currentState            = null
 loadedAssets            = null
@@ -26,13 +27,17 @@ EVENTS =
 fetch = (url, options = {}) ->
   url = new ComponentUrl url
 
+  if url.crossOrigin()
+    document.location.href = url.absolute
+    return
+
   if options.change or options.keep
     removeCurrentPageFromCache()
   else
     cacheCurrentPage()
 
   rememberReferer()
-  progressBar?.start()
+  progressBar?.start(delay: progressBarDelay)
 
   if transitionCacheEnabled and !options.change and cachedPage = transitionCacheFor(url.absolute)
     fetchHistory cachedPage
@@ -143,6 +148,7 @@ changePage = (title, body, csrfToken, options) ->
   if options.change
     nodesToChange = findNodes(currentBody, '[data-turbolinks-temporary]')
     nodesToChange.push(findNodesMatchingKeys(currentBody, options.change)...)
+    nodesToChange = removeDuplicates(nodesToChange)
   else
     nodesToChange = [currentBody]
 
@@ -155,7 +161,7 @@ changePage = (title, body, csrfToken, options) ->
     unless options.flush
       nodesToKeep = findNodes(currentBody, '[data-turbolinks-permanent]')
       nodesToKeep.push(findNodesMatchingKeys(currentBody, options.keep)...) if options.keep
-      swapNodes(body, nodesToKeep, keep: true)
+      swapNodes(body, removeDuplicates(nodesToKeep), keep: true)
 
     document.body = body
     CSRFToken.update csrfToken if csrfToken?
@@ -192,8 +198,6 @@ swapNodes = (targetBody, existingNodes, options) ->
         existingNode = targetNode.ownerDocument.adoptNode(existingNode)
         targetNode.parentNode.replaceChild(existingNode, targetNode)
       else
-        targetNode = targetNode.cloneNode(true)
-        targetNode = existingNode.ownerDocument.importNode(targetNode, true)
         existingNode.parentNode.replaceChild(targetNode, existingNode)
         onNodeRemoved(existingNode)
         changedNodes.push(targetNode)
@@ -250,7 +254,7 @@ rememberCurrentUrlAndState = ->
 # By forcing Firefox to trigger hashchange, the rest of the code can rely on more
 # consistent behavior across browsers.
 manuallyTriggerHashChangeForFirefox = ->
-  if navigator.userAgent.match(/Firefox/) and !(url = (new ComponentUrl)).hasNoHash()
+  if navigator.userAgent.indexOf('Firefox') != -1 and !(url = (new ComponentUrl)).hasNoHash()
     window.history.replaceState currentState, '', url.withoutHash()
     document.location.hash = url.hash
 
@@ -268,6 +272,11 @@ clone = (original) ->
   copy = new original.constructor()
   copy[key] = clone value for key, value of original
   copy
+
+removeDuplicates = (array) ->
+  result = []
+  result.push(obj) for obj in array when result.indexOf(obj) is -1
+  result
 
 popCookie = (name) ->
   value = document.cookie.match(new RegExp(name+"=(\\w+)"))?[1].toUpperCase() or ''
@@ -492,7 +501,16 @@ class ProgressBar
     @element.classList.remove(className)
     document.head.removeChild(@styleElement)
 
-  start: ->
+  start: ({delay} = {})->
+    clearTimeout(@displayTimeout)
+    if delay
+      @display = false
+      @displayTimeout = setTimeout =>
+        @display = true
+      , delay
+    else
+      @display = true
+
     if @value > 0
       @_reset()
       @_reflow()
@@ -573,7 +591,7 @@ class ProgressBar
       background-color: #0076ff;
       height: 3px;
       opacity: #{@opacity};
-      width: #{@value}%;
+      width: #{if @display then @value else 0}%;
       transition: width #{@speed}ms ease-out, opacity #{@speed / 2}ms ease-in;
       transform: translate3d(0,0,0);
     }
@@ -582,7 +600,8 @@ class ProgressBar
 ProgressBarAPI =
   enable: ProgressBar.enable
   disable: ProgressBar.disable
-  start: -> ProgressBar.enable().start()
+  setDelay: (value) -> progressBarDelay = value
+  start: (options) -> ProgressBar.enable().start(options)
   advanceTo: (value) -> progressBar?.advanceTo(value)
   done: -> progressBar?.done()
 
@@ -639,7 +658,7 @@ if browserSupportsTurbolinks
   visit = fetch
   initializeTurbolinks()
 else
-  visit = (url) -> document.location.href = url
+  visit = (url = document.location.href) -> document.location.href = url
 
 # Public API
 #   Turbolinks.visit(url)

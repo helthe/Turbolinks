@@ -1,4 +1,4 @@
-var CSRFToken, Click, ComponentUrl, EVENTS, Link, ProgressBar, ProgressBarAPI, browserIsBuggy, browserSupportsCustomEvents, browserSupportsPushState, browserSupportsTurbolinks, cacheCurrentPage, cacheSize, changePage, clone, constrainPageCacheTo, createDocument, crossOriginRedirect, currentState, disableRequestCaching, enableTransitionCache, executeScriptTags, extractTitleAndBody, fetch, fetchHistory, fetchReplacement, findNodes, findNodesMatchingKeys, initializeTurbolinks, installDocumentReadyPageEventTriggers, installJqueryAjaxSuccessPageUpdateTrigger, loadedAssets, manuallyTriggerHashChangeForFirefox, onHistoryChange, onNodeRemoved, pageCache, pageChangePrevented, pagesCached, popCookie, processResponse, progressBar, ref, referer, reflectNewUrl, reflectRedirectedUrl, rememberCurrentUrlAndState, rememberReferer, removeCurrentPageFromCache, replace, requestCachingEnabled, requestMethodIsSafe, setAutofocusElement, swapNodes, transitionCacheEnabled, transitionCacheFor, triggerEvent, ua, uniqueId, updateScrollPosition, visit, xhr,
+var CSRFToken, Click, ComponentUrl, EVENTS, Link, ProgressBar, ProgressBarAPI, browserIsBuggy, browserSupportsCustomEvents, browserSupportsPushState, browserSupportsTurbolinks, cacheCurrentPage, cacheSize, changePage, clone, constrainPageCacheTo, createDocument, crossOriginRedirect, currentState, disableRequestCaching, enableTransitionCache, executeScriptTags, extractTitleAndBody, fetch, fetchHistory, fetchReplacement, findNodes, findNodesMatchingKeys, initializeTurbolinks, installDocumentReadyPageEventTriggers, installJqueryAjaxSuccessPageUpdateTrigger, loadedAssets, manuallyTriggerHashChangeForFirefox, onHistoryChange, onNodeRemoved, pageCache, pageChangePrevented, pagesCached, popCookie, processResponse, progressBar, progressBarDelay, ref, referer, reflectNewUrl, reflectRedirectedUrl, rememberCurrentUrlAndState, rememberReferer, removeCurrentPageFromCache, removeDuplicates, replace, requestCachingEnabled, requestMethodIsSafe, setAutofocusElement, swapNodes, transitionCacheEnabled, transitionCacheFor, triggerEvent, ua, uniqueId, updateScrollPosition, visit, xhr,
   slice = [].slice,
   indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
@@ -14,6 +14,8 @@ transitionCacheEnabled = false;
 requestCachingEnabled = true;
 
 progressBar = null;
+
+progressBarDelay = 400;
 
 currentState = null;
 
@@ -42,6 +44,10 @@ fetch = function(url, options) {
     options = {};
   }
   url = new ComponentUrl(url);
+  if (url.crossOrigin()) {
+    document.location.href = url.absolute;
+    return;
+  }
   if (options.change || options.keep) {
     removeCurrentPageFromCache();
   } else {
@@ -49,7 +55,9 @@ fetch = function(url, options) {
   }
   rememberReferer();
   if (progressBar != null) {
-    progressBar.start();
+    progressBar.start({
+      delay: progressBarDelay
+    });
   }
   if (transitionCacheEnabled && !options.change && (cachedPage = transitionCacheFor(url.absolute))) {
     fetchHistory(cachedPage);
@@ -230,6 +238,7 @@ changePage = function(title, body, csrfToken, options) {
   if (options.change) {
     nodesToChange = findNodes(currentBody, '[data-turbolinks-temporary]');
     nodesToChange.push.apply(nodesToChange, findNodesMatchingKeys(currentBody, options.change));
+    nodesToChange = removeDuplicates(nodesToChange);
   } else {
     nodesToChange = [currentBody];
   }
@@ -247,7 +256,7 @@ changePage = function(title, body, csrfToken, options) {
       if (options.keep) {
         nodesToKeep.push.apply(nodesToKeep, findNodesMatchingKeys(currentBody, options.keep));
       }
-      swapNodes(body, nodesToKeep, {
+      swapNodes(body, removeDuplicates(nodesToKeep), {
         keep: true
       });
     }
@@ -295,8 +304,6 @@ swapNodes = function(targetBody, existingNodes, options) {
         existingNode = targetNode.ownerDocument.adoptNode(existingNode);
         targetNode.parentNode.replaceChild(existingNode, targetNode);
       } else {
-        targetNode = targetNode.cloneNode(true);
-        targetNode = existingNode.ownerDocument.importNode(targetNode, true);
         existingNode.parentNode.replaceChild(targetNode, existingNode);
         onNodeRemoved(existingNode);
         changedNodes.push(targetNode);
@@ -384,7 +391,7 @@ rememberCurrentUrlAndState = function() {
 
 manuallyTriggerHashChangeForFirefox = function() {
   var url;
-  if (navigator.userAgent.match(/Firefox/) && !(url = new ComponentUrl).hasNoHash()) {
+  if (navigator.userAgent.indexOf('Firefox') !== -1 && !(url = new ComponentUrl).hasNoHash()) {
     window.history.replaceState(currentState, '', url.withoutHash());
     return document.location.hash = url.hash;
   }
@@ -413,6 +420,18 @@ clone = function(original) {
     copy[key] = clone(value);
   }
   return copy;
+};
+
+removeDuplicates = function(array) {
+  var i, len, obj, result;
+  result = [];
+  for (i = 0, len = array.length; i < len; i++) {
+    obj = array[i];
+    if (result.indexOf(obj) === -1) {
+      result.push(obj);
+    }
+  }
+  return result;
 };
 
 popCookie = function(name) {
@@ -738,7 +757,20 @@ ProgressBar = (function() {
     return document.head.removeChild(this.styleElement);
   };
 
-  ProgressBar.prototype.start = function() {
+  ProgressBar.prototype.start = function(arg) {
+    var delay;
+    delay = (arg != null ? arg : {}).delay;
+    clearTimeout(this.displayTimeout);
+    if (delay) {
+      this.display = false;
+      this.displayTimeout = setTimeout((function(_this) {
+        return function() {
+          return _this.display = true;
+        };
+      })(this), delay);
+    } else {
+      this.display = true;
+    }
     if (this.value > 0) {
       this._reset();
       this._reflow();
@@ -838,7 +870,7 @@ ProgressBar = (function() {
   };
 
   ProgressBar.prototype._createCSSRule = function() {
-    return this.elementSelector + "." + className + "::before {\n  content: '" + this.content + "';\n  position: fixed;\n  top: 0;\n  left: 0;\n  z-index: 2000;\n  background-color: #0076ff;\n  height: 3px;\n  opacity: " + this.opacity + ";\n  width: " + this.value + "%;\n  transition: width " + this.speed + "ms ease-out, opacity " + (this.speed / 2) + "ms ease-in;\n  transform: translate3d(0,0,0);\n}";
+    return this.elementSelector + "." + className + "::before {\n  content: '" + this.content + "';\n  position: fixed;\n  top: 0;\n  left: 0;\n  z-index: 2000;\n  background-color: #0076ff;\n  height: 3px;\n  opacity: " + this.opacity + ";\n  width: " + (this.display ? this.value : 0) + "%;\n  transition: width " + this.speed + "ms ease-out, opacity " + (this.speed / 2) + "ms ease-in;\n  transform: translate3d(0,0,0);\n}";
   };
 
   return ProgressBar;
@@ -848,8 +880,11 @@ ProgressBar = (function() {
 ProgressBarAPI = {
   enable: ProgressBar.enable,
   disable: ProgressBar.disable,
-  start: function() {
-    return ProgressBar.enable().start();
+  setDelay: function(value) {
+    return progressBarDelay = value;
+  },
+  start: function(options) {
+    return ProgressBar.enable().start(options);
   },
   advanceTo: function(value) {
     return progressBar != null ? progressBar.advanceTo(value) : void 0;
@@ -921,6 +956,9 @@ if (browserSupportsTurbolinks) {
   initializeTurbolinks();
 } else {
   visit = function(url) {
+    if (url == null) {
+      url = document.location.href;
+    }
     return document.location.href = url;
   };
 }
