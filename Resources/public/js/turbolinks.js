@@ -1,4 +1,4 @@
-var CSRFToken, Click, ComponentUrl, EVENTS, Link, ProgressBar, ProgressBarAPI, browserIsBuggy, browserSupportsCustomEvents, browserSupportsPushState, browserSupportsTurbolinks, cacheCurrentPage, cacheSize, changePage, clone, constrainPageCacheTo, createDocument, crossOriginRedirect, currentState, disableRequestCaching, enableTransitionCache, executeScriptTags, extractTitleAndBody, fetch, fetchHistory, fetchReplacement, findNodes, findNodesMatchingKeys, initializeTurbolinks, installDocumentReadyPageEventTriggers, installJqueryAjaxSuccessPageUpdateTrigger, loadedAssets, manuallyTriggerHashChangeForFirefox, onHistoryChange, onNodeRemoved, pageCache, pageChangePrevented, pagesCached, popCookie, processResponse, progressBar, progressBarDelay, ref, referer, reflectNewUrl, reflectRedirectedUrl, rememberCurrentUrlAndState, rememberReferer, removeCurrentPageFromCache, removeDuplicates, replace, requestCachingEnabled, requestMethodIsSafe, setAutofocusElement, swapNodes, transitionCacheEnabled, transitionCacheFor, triggerEvent, ua, uniqueId, updateScrollPosition, visit, xhr,
+var CSRFToken, Click, ComponentUrl, EVENTS, Link, ProgressBar, ProgressBarAPI, browserIsBuggy, browserSupportsCustomEvents, browserSupportsPushState, browserSupportsTurbolinks, cacheCurrentPage, cacheSize, changePage, clone, constrainPageCacheTo, createDocument, crossOriginRedirect, currentState, disableRequestCaching, enableTransitionCache, executeScriptTags, extractTitleAndBody, fetch, fetchHistory, fetchReplacement, findNodes, findNodesMatchingKeys, getScriptsToRun, initializeTurbolinks, installDocumentReadyPageEventTriggers, installJqueryAjaxSuccessPageUpdateTrigger, isEvalAlways, loadedAssets, manuallyTriggerHashChangeForFirefox, onHistoryChange, onNodeRemoved, pageCache, pageChangePrevented, pagesCached, popCookie, processResponse, progressBar, progressBarDelay, ref, referer, reflectNewUrl, reflectRedirectedUrl, rememberCurrentUrlAndState, rememberReferer, removeCurrentPageFromCache, removeDuplicates, replace, requestCachingEnabled, requestMethodIsSafe, setAutofocusElement, swapNodes, transitionCacheEnabled, transitionCacheFor, triggerEvent, ua, uniqueId, updateScrollPosition, visit, withinPermanent, xhr,
   slice = [].slice,
   indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
@@ -44,6 +44,9 @@ fetch = function(url, options) {
     options = {};
   }
   url = new ComponentUrl(url);
+  if (pageChangePrevented(url.absolute)) {
+    return;
+  }
   if (url.crossOrigin()) {
     document.location.href = url.absolute;
     return;
@@ -60,6 +63,7 @@ fetch = function(url, options) {
     });
   }
   if (transitionCacheEnabled && !options.change && (cachedPage = transitionCacheFor(url.absolute))) {
+    reflectNewUrl(url);
     fetchHistory(cachedPage);
     options.showProgressBar = false;
     options.scroll = false;
@@ -232,7 +236,7 @@ replace = function(html, options) {
 };
 
 changePage = function(title, body, csrfToken, options) {
-  var changedNodes, currentBody, nodesToChange, nodesToKeep, ref, scriptsToRun;
+  var changedNodes, currentBody, nodesToChange, nodesToKeep, ref;
   title = (ref = options.title) != null ? ref : title;
   currentBody = document.body;
   if (options.change) {
@@ -267,8 +271,7 @@ changePage = function(title, body, csrfToken, options) {
     setAutofocusElement();
     changedNodes = [body];
   }
-  scriptsToRun = options.runScripts === false ? 'script[data-turbolinks-eval="always"]' : 'script:not([data-turbolinks-eval="false"])';
-  executeScriptTags(scriptsToRun);
+  executeScriptTags(getScriptsToRun(options.runScripts));
   currentState = window.history.state;
   triggerEvent(EVENTS.CHANGE, changedNodes);
   triggerEvent(EVENTS.UPDATE);
@@ -320,9 +323,36 @@ onNodeRemoved = function(node) {
   return triggerEvent(EVENTS.AFTER_REMOVE, node);
 };
 
-executeScriptTags = function(selector) {
-  var attr, copy, i, j, len, len1, nextSibling, parentNode, ref, ref1, script, scripts;
-  scripts = document.body.querySelectorAll(selector);
+getScriptsToRun = function(runScripts) {
+  var i, len, ref, results, script, selector;
+  selector = runScripts === false ? 'script[data-turbolinks-eval="always"]' : 'script:not([data-turbolinks-eval="false"])';
+  ref = document.querySelectorAll(selector);
+  results = [];
+  for (i = 0, len = ref.length; i < len; i++) {
+    script = ref[i];
+    if (isEvalAlways(script) || !withinPermanent(script)) {
+      results.push(script);
+    }
+  }
+  return results;
+};
+
+isEvalAlways = function(script) {
+  return script.getAttribute('data-turbolinks-eval') === 'always';
+};
+
+withinPermanent = function(element) {
+  while (element != null) {
+    if (typeof element.hasAttribute === "function" ? element.hasAttribute('data-turbolinks-permanent') : void 0) {
+      return true;
+    }
+    element = element.parentNode;
+  }
+  return false;
+};
+
+executeScriptTags = function(scripts) {
+  var attr, copy, i, j, len, len1, nextSibling, parentNode, ref, ref1, script;
   for (i = 0, len = scripts.length; i < len; i++) {
     script = scripts[i];
     if (!((ref = script.type) === '' || ref === 'text/javascript')) {
@@ -353,7 +383,8 @@ setAutofocusElement = function() {
 };
 
 reflectNewUrl = function(url) {
-  if ((url = new ComponentUrl(url)).absolute !== referer) {
+  var ref;
+  if ((ref = (url = new ComponentUrl(url)).absolute) !== referer && ref !== document.location.href) {
     return window.history.pushState({
       turbolinks: true,
       url: url.absolute
@@ -685,9 +716,7 @@ Click = (function() {
     }
     this._extractLink();
     if (this._validForTurbolinks()) {
-      if (!pageChangePrevented(this.link.absolute)) {
-        visit(this.link.href);
-      }
+      visit(this.link.href);
       this.event.preventDefault();
     }
   }
