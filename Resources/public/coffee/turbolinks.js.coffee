@@ -27,6 +27,8 @@ EVENTS =
 fetch = (url, options = {}) ->
   url = new ComponentUrl url
 
+  return if pageChangePrevented(url.absolute)
+
   if url.crossOrigin()
     document.location.href = url.absolute
     return
@@ -40,6 +42,7 @@ fetch = (url, options = {}) ->
   progressBar?.start(delay: progressBarDelay)
 
   if transitionCacheEnabled and !options.change and cachedPage = transitionCacheFor(url.absolute)
+    reflectNewUrl(url)
     fetchHistory cachedPage
     options.showProgressBar = false
     options.scroll = false
@@ -168,8 +171,7 @@ changePage = (title, body, csrfToken, options) ->
     setAutofocusElement()
     changedNodes = [body]
 
-  scriptsToRun = if options.runScripts is false then 'script[data-turbolinks-eval="always"]' else 'script:not([data-turbolinks-eval="false"])'
-  executeScriptTags(scriptsToRun)
+  executeScriptTags(getScriptsToRun(options.runScripts))
   currentState = window.history.state
 
   triggerEvent EVENTS.CHANGE, changedNodes
@@ -208,8 +210,21 @@ onNodeRemoved = (node) ->
     jQuery(node).remove()
   triggerEvent(EVENTS.AFTER_REMOVE, node)
 
-executeScriptTags = (selector) ->
-  scripts = document.body.querySelectorAll(selector)
+getScriptsToRun = (runScripts) ->
+  selector = if runScripts is false then 'script[data-turbolinks-eval="always"]' else 'script:not([data-turbolinks-eval="false"])'
+  script for script in document.querySelectorAll(selector) when isEvalAlways(script) or not withinPermanent(script)
+
+isEvalAlways = (script) ->
+  script.getAttribute('data-turbolinks-eval') is 'always'
+
+withinPermanent = (element) ->
+  while element?
+    return true if element.hasAttribute?('data-turbolinks-permanent')
+    element = element.parentNode
+
+  return false
+
+executeScriptTags = (scripts) ->
   for script in scripts when script.type in ['', 'text/javascript']
     copy = document.createElement 'script'
     copy.setAttribute attr.name, attr.value for attr in script.attributes
@@ -227,7 +242,7 @@ setAutofocusElement = ->
     autofocusElement.focus()
 
 reflectNewUrl = (url) ->
-  if (url = new ComponentUrl url).absolute isnt referer
+  if (url = new ComponentUrl url).absolute not in [referer, document.location.href]
     window.history.pushState { turbolinks: true, url: url.absolute }, '', url.absolute
 
 reflectRedirectedUrl = ->
@@ -451,7 +466,7 @@ class Click
     return if @event.defaultPrevented
     @_extractLink()
     if @_validForTurbolinks()
-      visit @link.href unless pageChangePrevented(@link.absolute)
+      visit @link.href
       @event.preventDefault()
 
   _extractLink: ->
