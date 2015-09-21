@@ -327,7 +327,7 @@
   getScriptsToRun = function(runScripts) {
     var i, len, ref, results, script, selector;
     selector = runScripts === false ? 'script[data-turbolinks-eval="always"]' : 'script:not([data-turbolinks-eval="false"])';
-    ref = document.querySelectorAll(selector);
+    ref = document.body.querySelectorAll(selector);
     results = [];
     for (i = 0, len = ref.length; i < len; i++) {
       script = ref[i];
