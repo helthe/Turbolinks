@@ -122,6 +122,7 @@ Instead of copying over the compiled javascripts to your projects, try to use yo
 
  * [HeltheTurbolinksBundle](https://github.com/helthe/TurbolinksBundle) (Symfony 2)
  * [Frenzy Turbolinks Package](https://github.com/frenzyapp/turbolinks) (Laravel)
+ * [Silex Turbolinks](https://github.com/flagshipcompany/silex-turbolinks) (Silex)
 
 ## Compatibility
 
