@@ -134,13 +134,11 @@ class Turbolinks
     public function redirectTo($request, $response)
     {
         list($turbolinks, $options) = $this->extractTurbolinksOptions($response->headers);
+        if (is_null($turbolinks)) {
+            $turbolinks = $request->isXmlHttpRequest() && (count($options) > 0 || ! $request->isMethod('GET'));
+        }
 
-        if ($turbolinks || (
-                $turbolinks !== false &&
-                $request->isXmlHttpRequest() &&
-                (count($options) > 0 || ! $request->isMethod('GET'))
-            )
-        ) {
+        if ($turbolinks) {
             $this->performTurbolinksResponse(
                 $request,
                 $response,
@@ -158,10 +156,11 @@ class Turbolinks
     public function render($request, $response)
     {
         list($turbolinks, $options) = $this->extractTurbolinksOptions($response->headers);
+        if (is_null($turbolinks)) {
+            $turbolinks = $request->isXmlHttpRequest() && count($options) > 0;
+        }
 
-        if ($turbolinks ||
-            ($turbolinks !== false && $request->isXmlHttpRequest() && count($options) > 0)
-        ) {
+        if ($turbolinks) {
             $this->performTurbolinksResponse(
                 $request,
                 $response,
@@ -297,9 +296,9 @@ class Turbolinks
      */
     private function performTurbolinksResponse(Request $request, Response $response, $body)
     {
+        $response->headers->set('Content-Type', $request->getMimeType('js'));
         $response->setStatusCode(200);
         $response->setContent($body);
-        $response->headers->set('Content-Type', $request->getMimeType('js'));
     }
 
     /**
@@ -347,7 +346,7 @@ class Turbolinks
     /**
      * Return HTTP headers equivalent of the given Turbolinks options.
      * E.G. `['change'  => 'comments']` becomes `['X-Turbolinks-Change' => 'comments']`
-     * 
+     *
      * @param  array $options
      *
      * @return array

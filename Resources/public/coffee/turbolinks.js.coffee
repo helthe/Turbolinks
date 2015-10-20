@@ -47,11 +47,12 @@ fetch = (url, options = {}) ->
     options.showProgressBar = false
     options.scroll = false
   else
-    options.scroll ?= false if options.change
+    options.scroll ?= false if options.change and !url.hash
 
   fetchReplacement url, options
 
 transitionCacheFor = (url) ->
+  return if url is currentState.url
   cachedPage = pageCache[url]
   cachedPage if cachedPage and !cachedPage.transitionCacheDisabled
 
@@ -83,7 +84,6 @@ fetchReplacement = (url, options) ->
       loadedNodes = changePage extractTitleAndBody(doc)..., options
       if options.showProgressBar
         progressBar?.done()
-      manuallyTriggerHashChangeForFirefox()
       updateScrollPosition(options.scroll)
       triggerEvent (if options.change then EVENTS.PARTIAL_LOAD else EVENTS.LOAD), loadedNodes
       constrainPageCacheTo(cacheSize)
@@ -171,7 +171,7 @@ changePage = (title, body, csrfToken, options) ->
     setAutofocusElement()
     changedNodes = [body]
 
-  executeScriptTags(getScriptsToRun(options.runScripts))
+  executeScriptTags(getScriptsToRun(changedNodes, options.runScripts))
   currentState = window.history.state
 
   triggerEvent EVENTS.CHANGE, changedNodes
@@ -210,9 +210,9 @@ onNodeRemoved = (node) ->
     jQuery(node).remove()
   triggerEvent(EVENTS.AFTER_REMOVE, node)
 
-getScriptsToRun = (runScripts) ->
+getScriptsToRun = (changedNodes, runScripts) ->
   selector = if runScripts is false then 'script[data-turbolinks-eval="always"]' else 'script:not([data-turbolinks-eval="false"])'
-  script for script in document.body.querySelectorAll(selector) when isEvalAlways(script) or not withinPermanent(script)
+  script for script in document.body.querySelectorAll(selector) when isEvalAlways(script) or (nestedWithinNodeList(changedNodes, script) and not withinPermanent(script))
 
 isEvalAlways = (script) ->
   script.getAttribute('data-turbolinks-eval') is 'always'
@@ -220,6 +220,13 @@ isEvalAlways = (script) ->
 withinPermanent = (element) ->
   while element?
     return true if element.hasAttribute?('data-turbolinks-permanent')
+    element = element.parentNode
+
+  return false
+
+nestedWithinNodeList = (nodeList, element) ->
+  while element?
+    return true if element in nodeList
     element = element.parentNode
 
   return false
@@ -261,24 +268,13 @@ rememberCurrentUrlAndState = ->
   window.history.replaceState { turbolinks: true, url: document.location.href }, '', document.location.href
   currentState = window.history.state
 
-# Unlike other browsers, Firefox doesn't trigger hashchange after changing the
-# location (via pushState) to an anchor on a different page.  For example:
-#
-#   /pages/one  =>  /pages/two#with-hash
-#
-# By forcing Firefox to trigger hashchange, the rest of the code can rely on more
-# consistent behavior across browsers.
-manuallyTriggerHashChangeForFirefox = ->
-  if navigator.userAgent.indexOf('Firefox') != -1 and !(url = (new ComponentUrl)).hasNoHash()
-    window.history.replaceState currentState, '', url.withoutHash()
-    document.location.hash = url.hash
-
 updateScrollPosition = (position) ->
   if Array.isArray(position)
     window.scrollTo position[0], position[1]
   else if position isnt false
     if document.location.hash
       document.location.href = document.location.href
+      rememberCurrentUrlAndState()
     else
       window.scrollTo 0, 0
 
@@ -634,7 +630,12 @@ installJqueryAjaxSuccessPageUpdateTrigger = ->
 
 onHistoryChange = (event) ->
   if event.state?.turbolinks && event.state.url != currentState.url
-    if cachedPage = pageCache[(new ComponentUrl(event.state.url)).absolute]
+    previousUrl = new ComponentUrl(currentState.url)
+    newUrl = new ComponentUrl(event.state.url)
+
+    if newUrl.withoutHash() is previousUrl.withoutHash()
+      updateScrollPosition()
+    else if cachedPage = pageCache[newUrl.absolute]
       cacheCurrentPage()
       fetchHistory cachedPage, scroll: [cachedPage.positionX, cachedPage.positionY]
     else
