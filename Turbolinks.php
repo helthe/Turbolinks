@@ -64,6 +64,11 @@ class Turbolinks
     const REQUEST_METHOD_COOKIE_ATTR_NAME = 'request_method';
 
     /**
+     * @var array
+     */
+    public static $mutationModes = array('change', 'append', 'prepend');
+
+    /**
      * Map between Turbolinks options names and Turbolinks HTTP header names
      * See: https://github.com/rails/turbolinks/blob/master/README.md#partial-replacement-30
      *
@@ -77,6 +82,12 @@ class Turbolinks
         // Refresh any or partially replace any `data-turbolinks-temporary` nodes
         // and nodes with `id`s matching `comments` or `comments:*`.
         'change'     => 'X-Turbolinks-Change',
+
+        // Append the children of nodes with the given ids.
+        'append'     => 'X-Turbolinks-Append',
+
+        // Prepend the children of nodes with the given ids.
+        'prepend'     => 'X-Turbolinks-Prepend',
 
         // Refresh or partially replace any `data-turbolinks-temporary` nodes
         // and nodes with `id` not matching `something` and `something:*`.
@@ -260,31 +271,42 @@ class Turbolinks
      */
     private function extractTurbolinksOptions($headers)
     {
-        $optionsFromHeaders = $this->extractTurbolinksHeaders($headers);
+        $options = $this->extractTurbolinksHeaders($headers);
 
         // Equivalent of the `array_pull()` Laravel helper:
-        //   $turbolinks = array_pull($optionsFromHeaders, 'turbolinks');
+        //   $turbolinks = array_pull($options, 'turbolinks');
         // See: http://laravel.com/docs/5.1/helpers#method-array-pull
         $turbolinks = null;
-        if (isset($optionsFromHeaders['turbolinks'])) {
-            $turbolinks = $optionsFromHeaders['turbolinks'];
-            unset($optionsFromHeaders['turbolinks']);
+        if (isset($options['turbolinks'])) {
+            $turbolinks = $options['turbolinks'];
+            unset($options['turbolinks']);
         }
 
-        $optionsKeys = array('keep', 'change', 'flush');
+        $optionsKeys = array('keep', 'change', 'append', 'prepend', 'flush');
 
         // Complex code, equivalent of the `array_only()` Laravel helper:
-        //   $turbolinksOptions = array_only($optionsFromHeaders, $optionsKeys);
+        //   $options = array_only($options, $optionsKeys);
         // See: http://laravel.com/docs/5.1/helpers#method-array-only
-        $turbolinksOptions = array_filter(
-            array_intersect_key($optionsFromHeaders, array_flip((array) $optionsKeys))
+        $options = array_filter(
+            array_intersect_key($options, array_flip((array) $optionsKeys))
         );
 
-        if (count($turbolinksOptions) > 1) {
-            throw new \InvalidArgumentException("cannot combine 'keep', 'change' and 'flush' options");
+        if (isset($options['keep']) && isset($options['flush'])) {
+            throw new \InvalidArgumentException("cannot combine 'keep' and 'flush' options");
         }
 
-        return array($turbolinks, $turbolinksOptions);
+        if (isset($options['keep']) || isset($options['flush'])) {
+            foreach (self::$mutationModes as $mutationModeOption) {
+                if (isset($options['keep']) && isset($options[$mutationModeOption])) {
+                    throw new \InvalidArgumentException("cannot combine 'keep' and '".$mutationModeOption."' options");
+                }
+                if (isset($options['flush']) && isset($options[$mutationModeOption])) {
+                    throw new \InvalidArgumentException("cannot combine 'flush' and '".$mutationModeOption."' options");
+                }
+            }
+        }
+
+        return array($turbolinks, $options);
     }
 
     /**
@@ -308,15 +330,24 @@ class Turbolinks
      */
     private function turbolinksJsOptions($options)
     {
+        $jsOptions = [];
         if (isset($options['change'])) {
-            return ", { change: ['".implode("', '", (array) $options['change'])."'] }";
+            $jsOptions['change'] = (array) $options['change'];
+        }
+        if (isset($options['append'])) {
+            $jsOptions['append'] = (array) $options['append'];
+        }
+        if (isset($options['prepend'])) {
+            $jsOptions['prepend'] = (array) $options['prepend'];
         }
         if (isset($options['keep'])) {
-            return ", { keep: ['".implode("', '", (array) $options['keep'])."'] }";
+            $jsOptions['keep'] = (array) $options['keep'];
         }
         if (isset($options['flush'])) {
-            return ", { flush: true }";
+            $jsOptions['flush'] = true;
         }
+
+        return ! empty($jsOptions) ? ", ".json_encode($jsOptions) : null;
     }
 
     /**
