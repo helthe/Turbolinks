@@ -40,7 +40,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->turbolinks->decorateResponse($request, $response);
 
-        $this->assertFalse($response->headers->has('X-XHR-Redirected-To'));
+        $this->assertFalse($response->headers->has('Turbolinks-Location'));
         $this->assertResponseHasNoCookies($response);
 
     }
@@ -58,7 +58,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
     public function testDoesNothingWhenNoOriginResponseHeader()
     {
-        $request = $this->createRequest('/', array('HTTP_X_XHR_REFERER' => 'http://bar.foo'));
+        $request = $this->createRequest('/', array('HTTP_TURBOLINKS-REFERRER' => 'http://bar.foo'));
         $response = new Response('foo', Response::HTTP_OK);
 
         $this->turbolinks->decorateResponse($request, $response);
@@ -74,7 +74,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->turbolinks->decorateResponse($request, $response);
 
-        $this->assertFalse($response->headers->has('X-XHR-Redirected-To'));
+        $this->assertFalse($response->headers->has('Turbolinks-Location'));
         $this->assertResponseHasNoCookies($response);
     }
 
@@ -85,13 +85,13 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->turbolinks->decorateResponse($request, $response);
 
-        $this->assertFalse($response->headers->has('X-XHR-Redirected-To'));
+        $this->assertFalse($response->headers->has('Turbolinks-Location'));
         $this->assertResponseHasNoCookies($response);
     }
 
     public function testSetsForbiddenForDifferentHost()
     {
-        $request = $this->createRequest('/', array('HTTP_X_XHR_REFERER' => 'http://bar.foo'));
+        $request = $this->createRequest('/', array('HTTP_TURBOLINKS-REFERRER' => 'http://bar.foo'));
         $response = new Response('foo', Response::HTTP_OK, array('Location' => 'http://foo.bar'));
 
         $this->turbolinks->decorateResponse($request, $response);
@@ -102,7 +102,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
     public function testSetsForbiddenForDifferentPort()
     {
-        $request = $this->createRequest('/', array('HTTP_X_XHR_REFERER' => 'http://foo.bar:8080'));
+        $request = $this->createRequest('/', array('HTTP_TURBOLINKS-REFERRER' => 'http://foo.bar:8080'));
         $response = new Response('foo', Response::HTTP_OK, array('Location' => 'http://foo.bar'));
 
         $this->turbolinks->decorateResponse($request, $response);
@@ -125,20 +125,20 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->turbolinks->decorateResponse($request, $response);
 
-        $this->assertFalse($response->headers->has('X-XHR-Redirected-To'));
+        $this->assertFalse($response->headers->has('Turbolinks-Location'));
         $this->assertResponseHasNoCookies($response);
     }
 
     public function testSetsSessionRedirectWhenRedirect()
     {
         $url = 'http://foo.bar/redirect';
-        $request = $this->createRequest('/', array('HTTP_X_XHR_REFERER' => 'http://foo.bar'));
+        $request = $this->createRequest('/', array('HTTP_TURBOLINKS-REFERRER' => 'http://foo.bar'));
         $response = new RedirectResponse($url);
         $session = $this->getSessionMock();
 
         $session->expects($this->once())
                 ->method('set')
-                ->with($this->equalTo('helthe_turbolinks_redirect_to'), $this->equalTo($url));
+                ->with($this->equalTo('helthe_turbolinks_location'), $this->equalTo($url));
 
         $request->setSession($session);
 
@@ -150,69 +150,38 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
     public function testSetsHeaderWhenSessionHasRedirect()
     {
         $url = 'http://foo.bar/redirect';
-        $request = $this->createRequest('/', array('HTTP_X_XHR_REFERER' => 'http://foo.bar'));
+        $request = $this->createRequest('/', array('HTTP_TURBOLINKS-REFERRER' => 'http://foo.bar'));
         $response = new Response();
         $session = $this->getSessionMock();
 
         $session->expects($this->once())
                 ->method('has')
-                ->with($this->equalTo('helthe_turbolinks_redirect_to'))
+                ->with($this->equalTo('helthe_turbolinks_location'))
                 ->will($this->returnValue(true));
 
         $session->expects($this->once())
                 ->method('remove')
-                ->with($this->equalTo('helthe_turbolinks_redirect_to'))
+                ->with($this->equalTo('helthe_turbolinks_location'))
                 ->will($this->returnValue($url));
 
         $request->setSession($session);
 
         $this->turbolinks->decorateResponse($request, $response);
 
-        $this->assertTrue($response->headers->has('X-XHR-Redirected-To'));
-        $this->assertEquals($url, $response->headers->get('X-XHR-Redirected-To'));
+        $this->assertTrue($response->headers->has('Turbolinks-Location'));
+        $this->assertEquals($url, $response->headers->get('Turbolinks-Location'));
         $this->assertResponseHasNoCookies($response);
     }
 
     public function testSetsForbiddenForDifferentScheme()
     {
-        $request = $this->createRequest('/', array('HTTP_X_XHR_REFERER' => 'https://foo.bar'));
+        $request = $this->createRequest('/', array('HTTP_TURBOLINKS-REFERRER' => 'https://foo.bar'));
         $response = new Response('foo', Response::HTTP_OK, array('Location' => 'http://foo.bar'));
 
         $this->turbolinks->decorateResponse($request, $response);
 
         $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
         $this->assertResponseHasNoCookies($response);
-    }
-
-    public function testSetsRequestMethodCookie()
-    {
-        $method = 'POST';
-        $response = new Response('foo');
-
-        $this->turbolinks->decorateResponse(Request::create('/', $method), $response);
-
-        $this->assertContainsRequestMethodCookie($response, $method);
-    }
-
-    public function testDeletesRequestMethodCookie()
-    {
-        $request = Request::create('/', 'GET', array(), array('request_method' => 'POST'));
-        $response = new Response('foo');
-
-        $this->turbolinks->decorateResponse($request, $response);
-
-        $this->assertRegExp('/Set-Cookie: request_method=deleted;/m', $response->headers->__toString());
-    }
-
-    /**
-     * Asserts that a response contains the request method cookie.
-     *
-     * @param Response $response
-     * @param string   $method
-     */
-    private function assertContainsRequestMethodCookie(Response $response, $method)
-    {
-        $this->assertContains(sprintf('Set-Cookie: %s=%s; path=/; httponly', 'request_method', $method), explode("\r\n", $response->headers->__toString()));
     }
 
     /**
