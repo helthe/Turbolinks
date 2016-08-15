@@ -2,7 +2,7 @@
     "name":        "helthe/turbolinks",
     "type":        "library",
     "description": "Helthe Turbolinks Component",
-    "keywords":    ["turbolinks", "jquery.turbolinks"],
+    "keywords":    ["turbolinks"],
     "homepage":    "https://helthe.co",
     "license":     "MIT",
     "authors": [
