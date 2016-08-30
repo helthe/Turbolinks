@@ -95,7 +95,10 @@ class Turbolinks
     {
         $turbolinks = $this->extractTurbolinksOptions($response->headers);
 
-        if ($turbolinks !== false && $request->isXmlHttpRequest() && ! $request->isMethod('GET')) {
+        if (
+            (array) $turbolinks !== array(false) &&
+            $request->isXmlHttpRequest() && ! $request->isMethod('GET')
+        ) {
             $location = $response->headers->get(self::ORIGIN_RESPONSE_HEADER);
             $turbolinksContent = $this->visitLocationWithTurbolinks($location, $turbolinks);
             $this->performTurbolinksResponse($request, $response, $turbolinksContent);
