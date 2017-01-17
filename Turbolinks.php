@@ -96,7 +96,7 @@ class Turbolinks
         $turbolinks = $this->extractTurbolinksOptions($response->headers);
 
         if (
-            (array) $turbolinks !== array(false) &&
+            $turbolinks !== false &&
             $request->isXmlHttpRequest() && ! $request->isMethod('GET')
         ) {
             $location = $response->headers->get(self::ORIGIN_RESPONSE_HEADER);
@@ -195,7 +195,7 @@ class Turbolinks
     private function visitLocationWithTurbolinks($location, $action)
     {
         $visitOptions = array(
-          'action' => (string) $action === "advance" ? $action : "replace"
+          'action' => is_string($action) && $action === "advance" ? $action : "replace"
         );
 
         $script = array();
@@ -263,6 +263,9 @@ class Turbolinks
 
         foreach ($headers as $key => $value) {
             if ($result = array_search($key, array_map('strtolower', $optionsMap))) {
+                if (is_array($value) && count($value) === 1 && array_key_exists(0, $value)) {
+                    $value = $value[0];
+                }
                 $options[$result] = $value;
                 if (is_array($headers)) {
                     unset($headers[$key]);
