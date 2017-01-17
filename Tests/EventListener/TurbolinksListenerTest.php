@@ -29,7 +29,7 @@ class TurbolinksListenerTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         $this->dispatcher = new EventDispatcher();
-        $this->kernel = $this->getMock('Symfony\Component\HttpKernel\HttpKernelInterface');
+        $this->kernel = $this->getMockBuilder('Symfony\Component\HttpKernel\HttpKernelInterface')->getMock();
     }
 
     protected function tearDown()
@@ -71,7 +71,7 @@ class TurbolinksListenerTest extends \PHPUnit_Framework_TestCase
      */
     private function getTurbolinksMock()
     {
-        return $this->getMock('Helthe\Component\Turbolinks\Turbolinks');
+        return $this->getMockBuilder('Helthe\Component\Turbolinks\Turbolinks')->getMock();
     }
 
     /**

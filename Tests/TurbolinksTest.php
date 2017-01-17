@@ -214,6 +214,6 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
      */
     private function getSessionMock()
     {
-        return $this->getMock('Symfony\Component\HttpFoundation\Session\SessionInterface');
+        return $this->getMockBuilder('Symfony\Component\HttpFoundation\Session\SessionInterface')->getMock();
     }
 }
