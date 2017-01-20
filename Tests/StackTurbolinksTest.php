@@ -47,7 +47,7 @@ class StackTurbolinksTest extends \PHPUnit_Framework_TestCase
      */
     public function getDecoratedAppMock()
     {
-        $decoratedApp = $this->getMock('Symfony\Component\HttpKernel\HttpKernelInterface');
+        $decoratedApp = $this->getMockBuilder('Symfony\Component\HttpKernel\HttpKernelInterface')->getMock();
         $decoratedApp->expects($this->once())->method('handle')->will($this->returnValue(new Response()));
 
         return $decoratedApp;
@@ -60,6 +60,6 @@ class StackTurbolinksTest extends \PHPUnit_Framework_TestCase
      */
     private function getTurbolinksMock()
     {
-        return $this->getMock('Helthe\Component\Turbolinks\Turbolinks');
+        return $this->getMockBuilder('Helthe\Component\Turbolinks\Turbolinks')->getMock();
     }
 }

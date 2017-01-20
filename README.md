@@ -1,15 +1,13 @@
 # Helthe Turbolinks [![Build Status](https://secure.travis-ci.org/helthe/Turbolinks.png?branch=master)](http://travis-ci.org/helthe/Turbolinks) [![Scrutinizer Quality Score](https://scrutinizer-ci.com/g/helthe/Turbolinks/badges/quality-score.png?s=2c3e7fd5d4df03c96c978a3c62813f6b1a6c62b1)](https://scrutinizer-ci.com/g/helthe/Turbolinks/)
 
-Helthe Turbolinks is a direct port of the rails [turbolinks](https://github.com/rails/turbolinks) gem
-and the [jquery.turbolinks](https://github.com/kossnocorp/jquery.turbolinks) gem for
+Helthe Turbolinks is a direct port of the rails [turbolinks](https://github.com/turbolinks/turbolinks) gem for
 projects using the Symfony [HttpFoundation Component](http://symfony.com/doc/current/components/http_foundation/introduction.html).
 
 ## Versions
 
 Current versions of the following gems are used:
 
- * turbolinks: v2.5.3
- * jquery.turbolinks: v2.1.0
+ * turbolinks: v5.0.0
 
 ## Performance
 
@@ -106,10 +104,6 @@ Both the original coffeescript version and compiled version of each script are a
 
 To enable turbolinks, all you need to do is add the compiled turbolinks javascript to your layout in the `<head>`section.
 
-#### Using jquery.turbolinks
-
-If you need to use jquery.turbolinks, you need to add it before `turbolinks.js`.
-
 ## Integrating turbolinks with another PHP project
 
 The goal of the component is to offer a base package for integration with other PHP projects using the Symfony [HttpFoundation](https://github.com/symfony/HttpFoundation) or [HttpKernel](https://github.com/symfony/HttpKernel) components.
@@ -137,8 +131,7 @@ help with this, check out the [Turbolinks Compatibility project](http://reed.git
 
 ## Additional Resources
 
-Please refer to the [turbolinks](https://github.com/rails/turbolinks) and
-[jquery.turbolinks](https://github.com/kossnocorp/jquery.turbolinks) projects
+Please refer to the [turbolinks](https://github.com/rails/turbolinks) project
 if you require additional information on the javascript libraries and their usage.
 
 ## Bugs

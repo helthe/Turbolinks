@@ -4,6 +4,7 @@
  * This file is part of the Helthe Turbolinks package.
  *
  * (c) Carl Alexander <carlalexander@helthe.co>
+ * (c) Tortue Torche <tortuetorche@spam.me>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -11,10 +12,11 @@
 
 namespace Helthe\Component\Turbolinks;
 
-use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 /**
  * Turbolinks implements the server-side logic expected by Turbolinks javascript.
@@ -30,7 +32,7 @@ class Turbolinks
      *
      * @var string
      */
-    const ORIGIN_REQUEST_HEADER = 'X-XHR-Referer';
+    const ORIGIN_REQUEST_HEADER = 'Turbolinks-Referrer';
 
     /**
      * Response header used for origin validation.
@@ -44,21 +46,23 @@ class Turbolinks
      *
      * @var string
      */
-    const REDIRECT_RESPONSE_HEADER = 'X-XHR-Redirected-To';
+    const REDIRECT_RESPONSE_HEADER = 'Turbolinks-Location';
 
     /**
      * Session attribute name for the redirect location.
      *
      * @var string
      */
-    const REDIRECT_SESSION_ATTR_NAME = 'helthe_turbolinks_redirect_to';
+    const LOCATION_SESSION_ATTR_NAME = 'helthe_turbolinks_location';
 
     /**
-     * Cookie attribute name for the request method.
-     *
-     * @var string
+     * @var array
      */
-    const REQUEST_METHOD_COOKIE_ATTR_NAME = 'request_method';
+    public static $turbolinksOptionsMap = array(
+        // Handles normal redirection with Turbolinks, if not set to `false`.
+        // Possible values: `null`, `'replace'`, `'advance'` or `false`
+        'turbolinks' => 'X-Turbolinks',
+    );
 
     /**
      * Modifies the HTTP headers and status code of the Response so that it can be
@@ -69,61 +73,60 @@ class Turbolinks
      */
     public function decorateResponse(Request $request, Response $response)
     {
-        $this->addRequestMethodCookie($request, $response);
+        if ($request->headers->has(self::ORIGIN_REQUEST_HEADER)) {
+            $request->headers->set('referer', $request->headers->get(self::ORIGIN_REQUEST_HEADER));
+        }
+
+        $this->setTurbolinksLocationHeaderFromSession($request, $response);
+
+        if ($response->isRedirect() && $response->headers->has(self::ORIGIN_RESPONSE_HEADER)) {
+            $this->redirectTo($request, $response);
+        }
+
         $this->modifyStatusCode($request, $response);
-
-        if (!$this->canHandleRedirect($request)) {
-            return;
-        }
-
-        $session = $request->getSession();
-
-        if ($session->has(self::REDIRECT_SESSION_ATTR_NAME)) {
-            $response->headers->add(array(self::REDIRECT_RESPONSE_HEADER => $session->remove(self::REDIRECT_SESSION_ATTR_NAME)));
-        }
-
-        if ($response->isRedirect() && $response->headers->has('Location')) {
-            $session->set(self::REDIRECT_SESSION_ATTR_NAME, $response->headers->get('Location'));
-        }
     }
 
     /**
-     * Adds a cookie with the request method for non-GET requests. If a cookie is present and the request is GET, the
-     * cookie is removed to work better with caching solutions. The turbolinks will not initialize if the cookie is set.
-     *
      * @param Request  $request
      * @param Response $response
+     * @return \Symfony\Component\HttpFoundation\Response
      */
-    private function addRequestMethodCookie(Request $request, Response $response)
+    public function redirectTo($request, $response)
     {
-        if ($request->isMethod('GET') && $request->cookies->has(self::REQUEST_METHOD_COOKIE_ATTR_NAME)) {
-            $response->headers->clearCookie(self::REQUEST_METHOD_COOKIE_ATTR_NAME);
+        $turbolinks = $this->extractTurbolinksOptions($response->headers);
+
+        if (
+            $turbolinks !== false &&
+            $request->isXmlHttpRequest() && ! $request->isMethod('GET')
+        ) {
+            $location = $response->headers->get(self::ORIGIN_RESPONSE_HEADER);
+            $turbolinksContent = $this->visitLocationWithTurbolinks($location, $turbolinks);
+            $this->performTurbolinksResponse($request, $response, $turbolinksContent);
+        } elseif ($this->canHandleRedirect($request)) {
+            $this->storeTurbolinksLocationInSession($request, $response);
         }
 
-        if (!$request->isMethod('GET')) {
-            $response->headers->setCookie(new Cookie(self::REQUEST_METHOD_COOKIE_ATTR_NAME, $request->getMethod()));
-        }
+        return $response;
     }
 
     /**
      * Checks if the request can handle a Turbolink redirect. You need to have a
      * session and a XHR request header to handle a redirect.
      *
-     * @param Request $request
+     * @param  Request $request
      *
      * @return bool
      */
     private function canHandleRedirect(Request $request)
     {
         $session = $request->getSession();
-
         return $session instanceof SessionInterface && $request->headers->has(self::ORIGIN_REQUEST_HEADER);
     }
 
     /**
      * Parse the given url into an origin array with the scheme, host and port.
      *
-     * @param string $url
+     * @param  string $url
      *
      * @return array
      */
@@ -139,8 +142,8 @@ class Turbolinks
     /**
      * Checks if the request and the response have the same origin.
      *
-     * @param Request  $request
-     * @param Response $response
+     * @param  Request  $request
+     * @param  Response $response
      *
      * @return bool
      */
@@ -167,5 +170,133 @@ class Turbolinks
         ) {
             $response->setStatusCode(Response::HTTP_FORBIDDEN);
         }
+    }
+
+    /**
+     * @param  ResponseHeaderBag $headers
+     * @return mixed
+     */
+    private function extractTurbolinksOptions($headers)
+    {
+        $options = $this->extractTurbolinksHeaders($headers);
+
+        // Equivalent of the `array_pull()` Laravel helper:
+        //   $turbolinks = array_pull($options, 'turbolinks');
+        // See: http://laravel.com/docs/5.1/helpers#method-array-pull
+        $turbolinks = null;
+        if (isset($options['turbolinks'])) {
+            $turbolinks = $options['turbolinks'];
+            unset($options['turbolinks']);
+        }
+
+        return $turbolinks;
+    }
+
+    private function visitLocationWithTurbolinks($location, $action)
+    {
+        $visitOptions = array(
+          'action' => is_string($action) && $action === "advance" ? $action : "replace"
+        );
+
+        $script = array();
+        $script[] = "Turbolinks.clearCache();";
+        $script[] = "Turbolinks.visit(".json_encode($location, JSON_UNESCAPED_SLASHES).", ".json_encode($visitOptions).");";
+
+        return implode(PHP_EOL, $script);
+    }
+
+    /**
+     * @param Request  $request
+     * @param Response $response
+     */
+    private function storeTurbolinksLocationInSession(Request $request, Response $response)
+    {
+        // Stores the return value (the redirect target url) to persist through to the redirect
+        // request, where it will be used to set the Turbolinks-Location response header. The
+        // Turbolinks script will detect the header and use replaceState to reflect the redirected
+        // url.
+        $session = $request->getSession();
+
+        if ($session) {
+            $location = $response->headers->get(self::ORIGIN_RESPONSE_HEADER);
+            $session->set(self::LOCATION_SESSION_ATTR_NAME, $location);
+        }
+    }
+
+    /**
+     * @param Request  $request
+     * @param Response $response
+     * @param string   $body Content of the response
+     */
+    private function performTurbolinksResponse(Request $request, Response $response, $body)
+    {
+        $response->headers->set('Content-Type', $request->getMimeType('js'));
+        $response->setStatusCode(200);
+        $response->setContent($body);
+    }
+
+    /**
+     * @param Request  $request
+     * @param Response $response
+     */
+    private function setTurbolinksLocationHeaderFromSession(Request $request, Response $response)
+    {
+        $session = $request->getSession();
+
+        // set 'Turbolinks-Location' header
+        if ($session && $session->has(self::LOCATION_SESSION_ATTR_NAME)) {
+            $response->headers->add(
+                array(self::REDIRECT_RESPONSE_HEADER => $session->remove(self::LOCATION_SESSION_ATTR_NAME))
+            );
+        }
+    }
+
+    /**
+     * @param  ResponseHeaderBag $headers
+     *
+     * @return array Turbolinks options
+     */
+    public function extractTurbolinksHeaders($headers)
+    {
+        $options = array();
+        $optionsMap = self::$turbolinksOptionsMap;
+
+        foreach ($headers as $key => $value) {
+            if ($result = array_search($key, array_map('strtolower', $optionsMap))) {
+                if (is_array($value) && count($value) === 1 && array_key_exists(0, $value)) {
+                    $value = $value[0];
+                }
+                $options[$result] = $value;
+                if (is_array($headers)) {
+                    unset($headers[$key]);
+                } elseif ($headers instanceof ResponseHeaderBag) {
+                    $headers->remove($key);
+                }
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * Return HTTP headers equivalent of the given Turbolinks options.
+     * E.G. `['turbolinks'  => 'advance']` becomes `['X-Turbolinks' => 'advance']`
+     *
+     * @param  array $options
+     *
+     * @return array
+     */
+    public function convertTurbolinksOptions($options = array())
+    {
+        $headers = array();
+        $optionsMap = self::$turbolinksOptionsMap;
+
+        foreach ($options as $key => $value) {
+            if (in_array($key, array_keys($optionsMap))) {
+                $headers[$optionsMap[$key]] = $value;
+            }
+        }
+
+        return $headers;
     }
 }

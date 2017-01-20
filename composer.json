@@ -2,7 +2,7 @@
     "name":        "helthe/turbolinks",
     "type":        "library",
     "description": "Helthe Turbolinks Component",
-    "keywords":    ["turbolinks", "jquery.turbolinks"],
+    "keywords":    ["turbolinks"],
     "homepage":    "https://helthe.co",
     "license":     "MIT",
     "authors": [
@@ -16,7 +16,8 @@
         "symfony/http-foundation": "~2.3|~3.0"
     },
     "require-dev": {
-        "symfony/http-kernel": "~2.3|~3.0"
+        "symfony/http-kernel": "~2.3|~3.0",
+        "phpunit/phpunit": "~4.8"
     },
     "suggest": {
         "symfony/http-kernel": "Required for usage with the Symfony HttpKernel Component"
