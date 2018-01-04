@@ -15,7 +15,6 @@ namespace Helthe\Component\Turbolinks;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 /**
@@ -120,7 +119,8 @@ class Turbolinks
     private function canHandleRedirect(Request $request)
     {
         $session = $request->getSession();
-        return $session instanceof SessionInterface && $request->headers->has(self::ORIGIN_REQUEST_HEADER);
+        return (is_a($session, '\Symfony\Component\HttpFoundation\Session\SessionInterface') ||  is_a($session, '\Illuminate\Contracts\Session\Session')) &&
+            $request->headers->has(self::ORIGIN_REQUEST_HEADER);
     }
 
     /**
@@ -216,10 +216,10 @@ class Turbolinks
         // Turbolinks script will detect the header and use replaceState to reflect the redirected
         // url.
         $session = $request->getSession();
-
         if ($session) {
             $location = $response->headers->get(self::ORIGIN_RESPONSE_HEADER);
-            $session->set(self::LOCATION_SESSION_ATTR_NAME, $location);
+            $setMethod = method_exists($session, 'put') ? 'put' : 'set';
+            $session->$setMethod(self::LOCATION_SESSION_ATTR_NAME, $location);
         }
     }
 
@@ -245,8 +245,9 @@ class Turbolinks
 
         // set 'Turbolinks-Location' header
         if ($session && $session->has(self::LOCATION_SESSION_ATTR_NAME)) {
+            $location = $session->remove(self::LOCATION_SESSION_ATTR_NAME);
             $response->headers->add(
-                array(self::REDIRECT_RESPONSE_HEADER => $session->remove(self::LOCATION_SESSION_ATTR_NAME))
+                array(self::REDIRECT_RESPONSE_HEADER => $location)
             );
         }
     }
