@@ -230,6 +230,7 @@ class Turbolinks
      */
     private function performTurbolinksResponse(Request $request, Response $response, $body)
     {
+        $response->headers->remove('Location');
         $response->headers->set('Content-Type', $request->getMimeType('js'));
         $response->setStatusCode(200);
         $response->setContent($body);
