@@ -1,12 +1,14 @@
 {
-    "name":        "sasa-b/turbolinks",
+    "name":        "helthe/turbolinks",
     "type":        "library",
-    "description": "Helthe Turbolinks Component Fork",
+    "description": "Helthe Turbolinks Component",
     "keywords":    ["turbolinks"],
+    "homepage":    "https://helthe.co",
+    "license":     "MIT",
     "authors": [
         {
-            "name": "Sasa Blagojevic",
-            "email": "sasa.blagojevic@mail.com"
+            "name": "Carl Alexander",
+            "email": "carlalexander@helthe.co"
         }
     ],
     "require": {
@@ -22,5 +24,10 @@
     },
     "autoload": {
         "psr-4": { "Helthe\\Component\\Turbolinks\\": "" }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.4.x-dev"
+        }
     }
 }
