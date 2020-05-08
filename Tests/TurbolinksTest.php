@@ -42,7 +42,6 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
 
         $this->assertFalse($response->headers->has('Turbolinks-Location'));
         $this->assertResponseHasNoCookies($response);
-
     }
 
     public function testDoesNothingWhenNoOriginRequestHeader()
