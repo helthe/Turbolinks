@@ -12,11 +12,12 @@
 namespace Helthe\Component\Turbolinks\Tests;
 
 use Helthe\Component\Turbolinks\Turbolinks;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class TurbolinksTest extends \PHPUnit_Framework_TestCase
+class TurbolinksTest extends TestCase
 {
     /**
      * @var Turbolinks
@@ -36,6 +37,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
     public function testDoesNothingWhenNoLocationHeader()
     {
         $request = new Request();
+        $request->setSession($this->getSessionMock());
         $response = new Response('foo', Response::HTTP_FOUND);
 
         $this->turbolinks->decorateResponse($request, $response);
@@ -48,6 +50,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
     public function testDoesNothingWhenNoOriginRequestHeader()
     {
         $request = $this->createRequest('/');
+        $request->setSession($this->getSessionMock());
         $response = new Response('foo', Response::HTTP_OK, array('Location' => 'http://bar.foo'));
 
         $this->turbolinks->decorateResponse($request, $response);
@@ -59,6 +62,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
     public function testDoesNothingWhenNoOriginResponseHeader()
     {
         $request = $this->createRequest('/', array('HTTP_TURBOLINKS-REFERRER' => 'http://bar.foo'));
+        $request->setSession($this->getSessionMock());
         $response = new Response('foo', Response::HTTP_OK);
 
         $this->turbolinks->decorateResponse($request, $response);
@@ -70,6 +74,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
     public function testDoesNothingWhenNormalResponse()
     {
         $request = new Request();
+        $request->setSession($this->getSessionMock());
         $response = new Response('foo');
 
         $this->turbolinks->decorateResponse($request, $response);
@@ -81,6 +86,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
     public function testDoesNothingWhenNoSession()
     {
         $request = new Request();
+        $request->setSession($this->getSessionMock());
         $response = new RedirectResponse('http://foo.bar/redirect');
 
         $this->turbolinks->decorateResponse($request, $response);
@@ -92,6 +98,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
     public function testSetsForbiddenForDifferentHost()
     {
         $request = $this->createRequest('/', array('HTTP_TURBOLINKS-REFERRER' => 'http://bar.foo'));
+        $request->setSession($this->getSessionMock());
         $response = new Response('foo', Response::HTTP_OK, array('Location' => 'http://foo.bar'));
 
         $this->turbolinks->decorateResponse($request, $response);
@@ -103,6 +110,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
     public function testSetsForbiddenForDifferentPort()
     {
         $request = $this->createRequest('/', array('HTTP_TURBOLINKS-REFERRER' => 'http://foo.bar:8080'));
+        $request->setSession($this->getSessionMock());
         $response = new Response('foo', Response::HTTP_OK, array('Location' => 'http://foo.bar'));
 
         $this->turbolinks->decorateResponse($request, $response);
@@ -176,6 +184,7 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
     public function testSetsForbiddenForDifferentScheme()
     {
         $request = $this->createRequest('/', array('HTTP_TURBOLINKS-REFERRER' => 'https://foo.bar'));
+        $request->setSession($this->getSessionMock());
         $response = new Response('foo', Response::HTTP_OK, array('Location' => 'http://foo.bar'));
 
         $this->turbolinks->decorateResponse($request, $response);
@@ -210,10 +219,10 @@ class TurbolinksTest extends \PHPUnit_Framework_TestCase
     /**
      * Get a mock of a Symfony Session.
      *
-     * @return PHPUnit_Framework_MockObject_MockObject
+     * @return \PHPUnit\Framework\MockObject\MockObject
      */
     private function getSessionMock()
     {
-        return $this->getMockBuilder('Symfony\Component\HttpFoundation\Session\SessionInterface')->getMock();
+        return $this->getMockBuilder(\Symfony\Component\HttpFoundation\Session\SessionInterface::class)->getMock();
     }
 }

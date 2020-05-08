@@ -12,11 +12,12 @@
 namespace Helthe\Component\Turbolinks\Tests;
 
 use Helthe\Component\Turbolinks\StackTurbolinks;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
-class StackTurbolinksTest extends \PHPUnit_Framework_TestCase
+class StackTurbolinksTest extends TestCase
 {
     public function testDoesNothingForSubRequests()
     {
