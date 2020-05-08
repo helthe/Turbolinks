@@ -12,12 +12,12 @@
         }
     ],
     "require": {
-        "php": ">=5.3.3",
-        "symfony/http-foundation": "~2.3|~3.0|~4.0"
+        "php": ">=7.0",
+        "symfony/http-foundation": "^5.0"
     },
     "require-dev": {
-        "symfony/http-kernel": "~2.3|~3.0|~4.0",
-        "phpunit/phpunit": "~4.8"
+        "symfony/http-kernel": "^5.0",
+        "phpunit/phpunit": "^7.0"
     },
     "suggest": {
         "symfony/http-kernel": "Required for usage with the Symfony HttpKernel Component"

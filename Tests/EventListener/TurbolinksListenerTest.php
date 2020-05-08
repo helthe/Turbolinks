@@ -13,14 +13,15 @@ namespace Helthe\Component\Turbolinks\Tests\EventListener;
 
 use Helthe\Component\Turbolinks\EventListener\TurbolinksListener;
 use Helthe\Component\Turbolinks\Turbolinks;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
-use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
+use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
-class TurbolinksListenerTest extends \PHPUnit_Framework_TestCase
+class TurbolinksListenerTest extends TestCase
 {
     private $dispatcher;
 
@@ -47,8 +48,8 @@ class TurbolinksListenerTest extends \PHPUnit_Framework_TestCase
 
         $this->addTurbolinksListener($turbolinks);
 
-        $event = new FilterResponseEvent($this->kernel, new Request(), HttpKernelInterface::SUB_REQUEST, $response);
-        $this->dispatcher->dispatch(KernelEvents::RESPONSE, $event);
+        $event = new ResponseEvent($this->kernel, new Request(), HttpKernelInterface::SUB_REQUEST, $response);
+        $this->dispatcher->dispatch($event, KernelEvents::RESPONSE);
     }
 
     public function testFilterDoesSomethingForMasterRequests()
@@ -60,8 +61,8 @@ class TurbolinksListenerTest extends \PHPUnit_Framework_TestCase
 
         $this->addTurbolinksListener($turbolinks);
 
-        $event = new FilterResponseEvent($this->kernel, new Request(), HttpKernelInterface::MASTER_REQUEST, $response);
-        $this->dispatcher->dispatch(KernelEvents::RESPONSE, $event);
+        $event = new ResponseEvent($this->kernel, new Request(), HttpKernelInterface::MASTER_REQUEST, $response);
+        $this->dispatcher->dispatch($event, KernelEvents::RESPONSE);
     }
 
     /**
