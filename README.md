@@ -31,7 +31,7 @@ Add the following in your `composer.json`:
 {
     "require": {
         // ...
-        "helthe/turbolinks": "~3.0"
+        "helthe/turbolinks": "~4.0"
     }
 }
 ```
@@ -39,7 +39,7 @@ Add the following in your `composer.json`:
 #### Using the command line
 
 ```bash
-$ composer require 'helthe/turbolinks=~3.0'
+$ composer require 'helthe/turbolinks=~4.0'
 ```
 
 ## Usage
