@@ -24,12 +24,12 @@ class TurbolinksTest extends TestCase
      */
     private $turbolinks;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->turbolinks = new Turbolinks();
     }
 
-    protected function tearDown()
+    protected function tearDown(): void
     {
         $this->turbolinks = null;
     }
